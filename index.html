@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
+<title>Extractor de libros → Mercado Libre</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#111a2b; --card2:#0e1626; --line:#22314d;
+    --txt:#e6eef6; --muted:#9aa6b2; --accent:#ffd166; --accent2:#4ea1ff;
+    --ok:#37d67a; --warn:#ffb84d; --err:#ff6b6b; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px;}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#13233a,#0a1626);
+    display:flex;align-items:center;justify-content:center;font-size:24px;border:1px solid var(--line)}
+  h1{font-size:19px;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  h3.sec{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--accent);margin:16px 0 6px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+  input,select,textarea{width:100%;background:var(--card2);color:var(--txt);border:1px solid var(--line);
+    border-radius:10px;padding:11px;font-size:15px;font-family:inherit}
+  textarea{min-height:74px;resize:vertical}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1;min-width:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:520px){.grid2{grid-template-columns:1fr}}
+  .btn{appearance:none;border:none;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;
+    cursor:pointer;background:var(--accent);color:#1b1b1b;width:100%;transition:transform .08s,filter .12s;text-align:center;text-decoration:none;display:inline-block}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.55;cursor:default}
+  .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .btn.blue{background:var(--accent2);color:#04121f}
+  .btn.sm{width:auto;padding:8px 12px;font-size:13px}
+  .capture{display:flex;flex-direction:column;gap:10px}
+  .cap-btns{display:flex;gap:10px;flex-wrap:wrap}
+  .cap-btns .btn{width:auto;flex:1;min-width:120px}
+  .hidden{display:none!important}
+  #preview{width:100%;max-height:280px;object-fit:contain;border-radius:10px;background:#000;border:1px solid var(--line)}
+  .field{position:relative;margin-bottom:2px}
+  .field .copy{position:absolute;right:6px;top:25px;background:var(--card2);border:1px solid var(--line);
+    color:var(--muted);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer}
+  .field .copy:active{color:var(--accent)}
+  .field input.withcopy,.field textarea.withcopy{padding-right:60px}
+  .status{font-size:13px;padding:9px 11px;border-radius:10px;margin:6px 0}
+  .status.info{background:#10233b;color:#bcd6ff;border:1px solid #1c3a5e}
+  .status.ok{background:#0f2a1c;color:#9be9bd;border:1px solid #1e5738}
+  .status.err{background:#2c1414;color:#ffb3b3;border:1px solid #5e1c1c}
+  .status.load{background:#241f10;color:#ffe0a3;border:1px solid #5e4a1c}
+  .conf{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px}
+  .conf.alta{background:#0f2a1c;color:#9be9bd}
+  .conf.media{background:#241f10;color:#ffe0a3}
+  .conf.baja{background:#2c1414;color:#ffb3b3}
+  .precioBox{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px}
+  .precioBox .est{font-size:14px;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px}
+  .pill{font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:2px 9px;color:var(--muted)}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0}
+  .thumbs .th{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#000}
+  .thumbs .th img{width:100%;height:100%;object-fit:cover}
+  .thumbs .th button{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:6px;font-size:12px;line-height:1;cursor:pointer;padding:2px 6px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);margin:6px 0}
+  .chk input{width:auto;flex:0 0 auto}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #ffe0a3;border-top-color:transparent;
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">📚</div>
+    <div>
+      <h1>Extractor de libros → Mercado Libre</h1>
+      <p class="sub">Sacá una foto de la tapa y armá la publicación con todos los datos de ML.</p>
+    </div>
+  </header>
+
+  <!-- CONFIGURACIÓN -->
+  <div class="card">
+    <details id="configDetails">
+      <summary>⚙️ Configuración (tocá para abrir) — <span id="cfgResumen" class="pill">sin clave</span></summary>
+      <div style="margin-top:10px">
+        <label>Servicio de IA</label>
+        <select id="proveedor">
+          <option value="gemini">Google Gemini (recomendado — tiene plan gratis)</option>
+          <option value="openai">OpenAI (GPT-4o-mini)</option>
+          <option value="anthropic">Claude (Anthropic)</option>
+          <option value="grok">Grok (xAI)</option>
+          <option value="deepseek">DeepSeek (solo ISBN/texto — no lee fotos)</option>
+        </select>
+
+        <label>API key <span class="muted" id="keyHelp"></span></label>
+        <input id="apiKey" type="password" placeholder="Pegá tu clave acá" autocomplete="off" />
+
+        <label>Modelo <span class="muted">(avanzado — vacío = se detecta solo)</span></label>
+        <input id="modelo" type="text" placeholder="dejar vacío (detecta automáticamente)" autocomplete="off" />
+
+        <label>Proxy de precios (URL) <span class="muted">— opcional, para el precio real de ML</span></label>
+        <input id="proxyPrecios" type="text" placeholder="https://tu-worker.workers.dev" autocomplete="off" />
+
+        <label>Proxy BNE (URL) <span class="muted">— opcional, datos/medidas de libros en español</span></label>
+        <input id="proxyBne" type="text" placeholder="https://tu-worker-bne.workers.dev" autocomplete="off" />
+
+        <label>Foto genérica (URL) <span class="muted">— opcional; si la ponés, se usa en la columna Fotos de cada libro</span></label>
+        <input id="fotoGenerica" type="text" placeholder="https://... (dejá vacío para no poner ninguna)" autocomplete="off" />
+
+        <label>Libros sin ISBN</label>
+        <input id="isbnGenerico" type="hidden" />
+        <p class="small muted" style="margin:4px 0 0">
+          A los libros <b>anteriores a 1970</b> sin ISBN la app les genera un <b>código único</b> (empieza con 200).
+          Para los demás, tildá <b>"Libro sin ISBN"</b> debajo del campo ISBN.
+          Son códigos de uso interno que nunca coinciden con un libro real, así que Mercado Libre
+          no los asocia a su catálogo y <b>respeta tu descripción</b>.
+        </p>
+
+        <div class="grid2">
+          <div>
+            <label>Etiqueta del título</label>
+            <input id="etiqueta" type="text" placeholder="Microcentro" />
+          </div>
+          <div>
+            <label>Condición por defecto</label>
+            <select id="condicionDef"><option>Usado</option><option>Nuevo</option></select>
+          </div>
+          <div>
+            <label>SKU / ubicación por defecto</label>
+            <input id="sku" type="text" placeholder="(opcional)" />
+          </div>
+          <div>
+            <label>Stock por defecto</label>
+            <input id="stock" type="number" value="1" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label>Precio</label>
+            <select id="precioModo">
+              <option value="manual">Lo pongo yo (vacío)</option>
+              <option value="sugerir">Que la IA sugiera (invento de la IA, poco confiable)</option>
+              <option value="fijo">Valor fijo</option>
+            </select>
+          </div>
+          <div id="precioFijoWrap" class="hidden">
+            <label>Precio fijo (pesos)</label>
+            <input id="precioFijo" type="number" placeholder="20000" />
+          </div>
+        </div>
+
+        <h3 class="sec">📦 Medidas y peso del paquete de envío (obligatorio en ML)</h3>
+        <p class="small muted" style="margin:0 0 6px">Valor típico de tus libros. Se completa solo en cada publicación y lo podés editar por libro.</p>
+        <div class="grid2">
+          <div><label>Ancho (cm)</label><input id="paqAncho" type="number" placeholder="24" /></div>
+          <div><label>Alto (cm)</label><input id="paqAlto" type="number" placeholder="17" /></div>
+          <div><label>Profundidad (cm)</label><input id="paqProf" type="number" placeholder="4" /></div>
+          <div><label>Peso (kg)</label><input id="paqPeso" type="number" step="0.001" placeholder="0.5" /></div>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary>Condiciones de venta (envío, cuotas, retiro) — avanzado</summary>
+          <div class="grid2" style="margin-top:8px">
+            <div><label>Forma de envío</label><input id="formaEnvio" type="text" value="Mercado Envíos" /></div>
+            <div><label>Costo de envío</label><input id="costoEnvio" type="text" value="A cargo del comprador" /></div>
+            <div><label>Retiro en persona</label><input id="retiro" type="text" value="Acepto" /></div>
+            <div><label>Cuotas</label><input id="cuotas" type="text" value="No agregar cuotas" /></div>
+            <div><label>Costo por ofrecer cuotas</label><input id="costoCuotas" type="text" value="Sin costo" /></div>
+            <div><label>Tipo de garantía</label><input id="tipoGarantia" type="text" value="Garantía del vendedor" /></div>
+            <div><label>Tiempo de garantía</label><input id="tiempoGarantia" type="text" value="1" /></div>
+            <div><label>Unidad de tiempo</label><input id="unidadGarantia" type="text" value="meses" /></div>
+          </div>
+        </details>
+
+        <h3 class="sec">🏬 Cierre de la descripción (tu librería)</h3>
+        <label>Nombre de la librería</label>
+        <input id="libreria" type="text" placeholder="Librería Los Siete Pilares" />
+        <label>Texto de retiro / ubicación</label>
+        <textarea id="retiroTexto" style="min-height:56px"></textarea>
+        <label class="chk"><input type="checkbox" id="tituloItalica" /> Título del libro en <b>itálicas</b> en la descripción (Unicode)</label>
+
+        <button class="btn sec sm" id="guardarCfg" style="margin-top:12px">💾 Guardar configuración</button>
+        <p class="small muted" style="margin-top:8px">
+          Tu clave y tus datos se guardan solo en <b>este dispositivo</b> (la foto solo se envía al servicio de IA para leerla).
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <!-- CHEQUEO DE DUPLICADOS -->
+  <div class="card">
+    <details id="dupDetails">
+      <summary>🔁 Chequeo de duplicados (publicaciones de ML) — <span id="dupResumen" class="pill">sin cargar</span></summary>
+      <div style="margin-top:8px">
+        <p class="small muted">Descargá de Mercado Libre el <b>Excel de tus publicaciones</b> e importalo acá. Cuando cargues un libro que ya tengas publicado, la app te avisa (por <b>ISBN</b>, <b>título + autor</b> o <b>SKU</b>). El archivo se lee <b>en tu teléfono</b>; no se sube a ningún lado.</p>
+        <input id="fileDup" class="hidden" type="file" accept=".xlsx" />
+        <div class="cap-btns">
+          <button class="btn sec" id="btnImportDup">📂 Importar Excel de ML</button>
+          <button class="btn sec hidden" id="btnVaciarDup">🗑️ Vaciar</button>
+        </div>
+        <div id="dupStatus" class="small muted" style="margin-top:8px"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- CAPTURA -->
+  <div class="card">
+    <h2>1) Foto(s) del libro</h2>
+    <div class="capture">
+      <input id="fileCam" class="hidden" type="file" accept="image/*" capture="environment" />
+      <input id="fileGal" class="hidden" type="file" accept="image/*" multiple />
+      <div class="cap-btns">
+        <button class="btn" id="btnCam">📷 Cámara</button>
+        <button class="btn sec" id="btnGal">🖼️ Galería</button>
+      </div>
+      <button class="btn sec hidden" id="btnScan" style="width:100%;margin-top:8px">🔖 Escanear código de barras (ISBN)</button>
+      <div id="thumbs" class="thumbs"></div>
+      <label class="chk"><input type="checkbox" id="chkVarios" /> La(s) foto(s) tienen <b>varios libros distintos</b></label>
+      <button class="btn blue hidden" id="btnAnalizar">🔎 Analizar</button>
+      <p class="small muted" id="capHint">Sumá varias fotos del <b>mismo</b> libro (tapa, contratapa, hoja con el ISBN) para sacar más datos. O marcá la casilla si la foto tiene <b>varios libros</b> distintos. <b>Tip:</b> incluí una regla en la foto y calcula las medidas del libro.</p>
+
+      <details>
+        <summary>…o buscar sin foto (ISBN / título a mano)</summary>
+        <div style="margin-top:8px">
+          <label>ISBN o título + autor</label>
+          <div class="row">
+            <input id="manualTexto" type="text" placeholder="9788483462287  ó  Restos del dia Kazuo Ishiguro" />
+            <button class="btn blue sm" id="btnManual" style="flex:0 0 auto">Buscar</button>
+          </div>
+        </div>
+      </details>
+    </div>
+    <div id="status" class="status hidden"></div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="card hidden" id="cardResultado">
+    <h2>2) Datos de la publicación <span id="confBadge"></span> <span id="colaInfo" class="pill hidden"></span></h2>
+    <div id="dupWarn" class="status err hidden" style="margin-bottom:10px"></div>
+
+    <div class="field">
+      <label>TÍTULO de la publicación (máx 60)</label>
+      <input id="f_title" class="withcopy" type="text" />
+      <button class="copy" data-for="f_title">copiar</button>
+    </div>
+    <div class="small muted" style="margin:2px 0 10px">Largo: <span id="titleLen">0</span>/60</div>
+
+    <!-- Precio + búsqueda -->
+    <div class="field">
+      <label>Precio [$] (ML)</label>
+      <input id="f_precio" class="withcopy" type="number" />
+      <button class="copy" data-for="f_precio">copiar</button>
+    </div>
+    <div class="precioBox">
+      <div class="est" id="precioEst">💰 El precio lo definís vos. Buscá precios reales de este libro en:</div>
+      <div class="cap-btns" id="precioLinks"></div>
+      <button class="btn sec sm" id="btnPrecioReal" style="margin-top:8px">💲 Precio real en ML (mediana)</button>
+      <div id="precioRealBox" class="small" style="margin-top:6px"></div>
+      <div class="small muted" style="margin-top:6px">Los botones abren la búsqueda real de este libro en cada sitio.</div>
+    </div>
+
+    <!-- Campos del libro (se generan solos) -->
+    <h3 class="sec">📖 Características del libro</h3>
+    <div id="camposGrid" class="grid2"></div>
+
+    <div class="field" style="margin-top:10px">
+      <label>Reseña del libro (texto de la IA) <span class="muted">— editable; es el bloque del medio de la descripción</span></label>
+      <textarea id="f_resena" class="withcopy" style="min-height:90px"></textarea>
+      <button class="copy" data-for="f_resena">copiar</button>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>Descripción (final) <button class="btn sec sm" id="btnRearmar" style="padding:2px 8px;font-size:11px;margin-left:6px">🔄 Rearmar</button></label>
+      <textarea id="f_descripcion" class="withcopy" style="min-height:150px"></textarea>
+      <button class="copy" data-for="f_descripcion">copiar</button>
+    </div>
+    <div id="obs" class="small muted" style="margin:6px 0 12px"></div>
+
+    <div class="cap-btns">
+      <button class="btn" id="btnAgregar">➕ Agregar a la lista</button>
+      <button class="btn sec" id="btnDescartar">Descartar</button>
+    </div>
+  </div>
+
+  <!-- LISTA -->
+  <div class="card">
+    <h2>3) Libros cargados (<span id="conteo">0</span>)</h2>
+    <div id="listaVacia" class="muted small">Todavía no agregaste libros. Cada libro que agregues queda acá. Podés editarlo con ✏️ o quitarlo con ✕.</div>
+    <div id="tablaWrap" class="hidden" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>#</th><th>Título</th><th>Precio</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="cap-btns" style="margin-top:12px">
+      <button class="btn blue" id="btnXLSX">⬇️ Descargar Excel (.xlsx)</button>
+      <button class="btn sec" id="btnCSV">CSV</button>
+      <button class="btn sec" id="btnVaciar">🗑️ Vaciar</button>
+    </div>
+    <p class="small muted" style="margin-top:8px">
+      Descargá el <b>Excel</b>: abre con las columnas ya separadas (mismo orden que la planilla de ML).
+      Abrilo, <b>copiá las filas de datos</b> (sin el encabezado) y <b>pegalas</b> en tu planilla de Mercado Libre,
+      en la primera fila vacía debajo de los títulos. (El CSV es alternativo; en Excel en español a veces no separa las columnas.)
+    </p>
+    <div id="validacion"></div>
+  </div>
+
+  <!-- COMPARTIR -->
+  <div class="card">
+    <h2>📲 Compartir la app</h2>
+    <p class="small muted" style="margin:0 0 10px">Mandá el link por WhatsApp: quien lo reciba abre la misma herramienta en su celular, sin instalar nada.</p>
+    <div class="cap-btns">
+      <button class="btn" id="btnWhats">📲 Compartir por WhatsApp</button>
+      <button class="btn sec" id="btnCopiarLink">🔗 Copiar link</button>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <img id="qr" alt="Código QR de la app" width="140" height="140" style="border-radius:10px;background:#fff;padding:6px" />
+      <div class="small muted" style="flex:1;min-width:160px">O que lo escaneen con la cámara desde este <b>QR</b>.<br><span id="appUrl" style="word-break:break-all"></span></div>
+    </div>
+  </div>
+
+  <p class="small muted" style="text-align:center">Funciona en el navegador. No hay servidor: tus fotos y tu clave no salen de tu dispositivo (salvo la foto que se manda al servicio de IA para leerla). <span class="pill">v32</span></p>
+
+  <!-- Overlay del escáner de código de barras -->
+  <div id="scanOverlay" class="hidden" style="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <video id="scanVideo" playsinline muted style="max-width:100%;max-height:80vh"></video>
+    <p style="color:#fff;margin:12px;text-align:center">Apuntá al código de barras del libro…</p>
+    <button class="btn sec" id="btnScanCancel" style="max-width:200px">Cancelar</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Columnas EXACTAS de la planilla "Publicar varios productos"
+   (Libros Físicos), en orden A..BI. Cada una define cómo se llena.
+   g(id) = valor del campo en pantalla ; C = config.
+   ============================================================ */
+const COLUMNAS = [
+  ["Código de catálogo ML", ()=>""],
+  ["Título", g=>g("title")],
+  ["Cantidad de caracteres", ()=>""],
+  ["Condición", (g,cfg)=>g("condicion")||cfg.condicion||"Usado"],
+  ["ISBN", g=>g("isbn")],
+  ["Fotos", (g,cfg)=>g("fotos")||cfg.fotoGenerica||""],
+  ["SKU", (g,cfg)=>g("sku")||cfg.sku||""],
+  ["Stock", (g,cfg)=>cfg.stock||"1"],
+  ["Precio [$]", g=>g("precio")],
+  ["Descripción", g=>g("descripcion")],
+  ["Ancho (cm)", (g,cfg)=>paqDim(g("ancho_cm"),2,cfg.paqAncho)],
+  ["Alto (cm)", (g,cfg)=>paqDim(g("altura_cm"),2,cfg.paqAlto)],
+  ["Profundidad (cm)", (g,cfg)=>paqDim(g("grosor_cm"),1,cfg.paqProf)],
+  ["Peso físico (kg)", (g,cfg)=>paqPeso(g("peso_g"),cfg.paqPeso)],
+  ["Cargo por vender", ()=>""],
+  ["Cuotas", (g,cfg)=>cfg.cuotas||""],
+  ["Costo por ofrecer cuotas", (g,cfg)=>cfg.costoCuotas||""],
+  ["Forma de envío", (g,cfg)=>cfg.formaEnvio||""],
+  ["Costo de envío", (g,cfg)=>cfg.costoEnvio||""],
+  ["Retiro en persona", (g,cfg)=>cfg.retiro||""],
+  ["Tipo de garantía", (g,cfg)=>cfg.tipoGarantia||""],
+  ["Tiempo de garantía", (g,cfg)=>cfg.tiempoGarantia||""],
+  ["Unidad de Tiempo de garantía", (g,cfg)=>cfg.unidadGarantia||""],
+  ["Factura A", ()=>""],
+  ["Título del libro", g=>g("titulo_libro")],
+  ["Autor", g=>g("autor")],
+  ["Editorial del libro", g=>g("editorial")],
+  ["Subtítulo del libro", g=>g("subtitulo")],
+  ["Serie", g=>g("serie")],
+  ["Idioma", g=>g("idioma")],
+  ["Edición del libro", g=>g("edicion")],
+  ["Tapa del libro", g=>g("tapa")],
+  ["Volumen del libro", ()=>""],
+  ["Índice", g=>g("indice")],
+  ["Año de publicación", g=>g("anio")],
+  ["Género del libro", ()=>""],
+  ["Páginas para colorear", ()=>""],
+  ["Realidad aumentada", ()=>""],
+  ["Coautores", g=>g("coautores")],
+  ["Traductores", g=>g("traductores")],
+  ["Tipo de narración", g=>g("tipo_narracion")],
+  ["Versión del libro", ()=>""],
+  ["BISAC", ()=>""],
+  ["Tamaño del libro", ()=>""],
+  ["NCM", ()=>""],
+  ["País de origen", g=>g("pais_origen")],
+  ["Colección del libro", g=>g("coleccion")],
+  ["Edad mínima recomendada", ()=>""],
+  ["Unidad de Edad mínima recomendada", ()=>""],
+  ["En imprenta mayúscula", ()=>""],
+  ["Cantidad de libros por set", ()=>""],
+  ["Cantidad de páginas", g=>g("paginas")],
+  ["Altura", g=>_entUp(g("altura_cm"))],
+  ["Unidad de Altura", g=>g("altura_cm")?"cm":""],
+  ["Ancho", g=>_entUp(g("ancho_cm"))],
+  ["Unidad de Ancho", g=>g("ancho_cm")?"cm":""],
+  ["Peso", g=>_entRound(g("peso_g"))],
+  ["Unidad de Peso", g=>g("peso_g")?"g":""],
+  ["Material de la tapa del libro", g=>g("material_tapa")],
+  ["Resumen de errores", ()=>""],
+  ["BUYBOX_FORMULA", ()=>""],
+  ["HIDDEN_PICTURES", ()=>""],
+];
+// Red de seguridad para el Excel: las medidas siempre enteras (sin decimales).
+function _entUp(v){ const n=parseFloat(String(v||"").replace(",",".")); return isNaN(n)?(v||""):String(Math.ceil(n)); }
+function _entRound(v){ const n=parseFloat(String(v||"").replace(",",".")); return isNaN(n)?(v||""):String(Math.round(n)); }
+
+/* Campos editables que se muestran en pantalla (además de título/precio/descripción). */
+const CAMPOS = [
+  {id:"sku", label:"SKU / ubicación"},
+  {id:"fotos", label:"Fotos (URLs de ML, separadas por coma) — opcional"},
+  {id:"condicion", label:"Condición", type:"select", opts:["Usado","Nuevo"]},
+  {id:"estado", label:"Estado del ejemplar"},
+  {id:"titulo_libro", label:"Título del libro"},
+  {id:"subtitulo", label:"Subtítulo"},
+  {id:"autor", label:"Autor"},
+  {id:"ciudad", label:"Ciudad de edición"},
+  {id:"coautores", label:"Coautores"},
+  {id:"traductores", label:"Traductores"},
+  {id:"editorial", label:"Editorial"},
+  {id:"coleccion", label:"Colección"},
+  {id:"serie", label:"Serie"},
+  {id:"edicion", label:"Edición"},
+  {id:"idioma", label:"Idioma"},
+  {id:"tapa", label:"Tapa", type:"select", opts:["","Dura","Blanda"]},
+  {id:"indice", label:"Índice", type:"select", opts:["","Sí","No"]},
+  {id:"anio", label:"Año de publicación"},
+  {id:"isbn", label:"ISBN"},
+  {id:"tipo_narracion", label:"Tipo de narración"},
+  {id:"paginas", label:"Cantidad de páginas"},
+  {id:"pais_origen", label:"País de origen"},
+  {id:"altura_cm", label:"Alto del libro (cm)"},
+  {id:"ancho_cm", label:"Ancho del libro (cm)"},
+  {id:"grosor_cm", label:"Grosor/lomo (cm)"},
+  {id:"peso_g", label:"Peso del libro (g)"},
+  {id:"material_tapa", label:"Material de la tapa"},
+];
+
+const MODELOS = { gemini:"gemini-2.5-flash", openai:"gpt-4o-mini", anthropic:"claude-3-5-sonnet-20241022",
+  grok:"grok-2-vision-1212", deepseek:"deepseek-chat" };
+const KEY_HELP = {
+  gemini:'(gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com</a>)',
+  openai:'(en platform.openai.com)',
+  anthropic:'(en console.anthropic.com)',
+  grok:'(en <a href="https://console.x.ai" target="_blank" rel="noopener">console.x.ai</a> — sí lee fotos)',
+  deepseek:'(en <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a> — NO lee fotos, solo ISBN/texto)'
+};
+
+const $ = (id)=>document.getElementById(id);
+let C = cargarCfg();
+let libros = cargarLibros();
+let actual = null;    // datos crudos del libro en pantalla (respuesta IA)
+let editIdx = null;   // índice del libro que se está editando (null = alta nueva)
+
+/* ---------- Config ---------- */
+function cfgDefault(){
+  return {proveedor:"gemini",apiKey:"",modelo:"",etiqueta:"Microcentro",condicion:"Usado",
+    sku:"",stock:"1",precioModo:"manual",precioFijo:"",
+    paqAncho:"24",paqAlto:"17",paqProf:"4",paqPeso:"0.5",
+    formaEnvio:"Mercado Envíos",costoEnvio:"A cargo del comprador",retiro:"Acepto",
+    cuotas:"No agregar cuotas",costoCuotas:"Sin costo",
+    tipoGarantia:"Garantía del vendedor", tiempoGarantia:"1", unidadGarantia:"meses",
+    libreria:"Librería Los Siete Pilares",
+    retiroTexto:"Retiro en persona en una librería a la calle en la zona de Paraguay y Reconquista.",
+    tituloItalica:false, proxyPrecios:"", proxyBne:"",
+    fotoGenerica:"", isbnGenerico:""};
+}
+function cargarCfg(){
+  try{
+    const c=Object.assign(cfgDefault(), JSON.parse(localStorage.getItem("extractorCfg")||"{}"));
+    // El ISBN genérico que traía la app por defecto es el de un libro real de Cátedra.
+    // Al repetirlo, ML matchea todos los libros contra ese producto de catálogo y
+    // reemplaza la descripción propia por la del catálogo. Lo limpiamos.
+    if(c.isbnGenerico==="9788437619187"){ c.isbnGenerico=""; localStorage.setItem("extractorCfg", JSON.stringify(c)); }
+    return c;
+  }
+  catch(e){ return cfgDefault(); }
+}
+function guardarCfgStorage(){ localStorage.setItem("extractorCfg", JSON.stringify(C)); }
+/* Cada libro se guarda como { vals:{campo:valor}, cfg:snapshot, prosa, confianza, observaciones }
+   para poder re-editarlo sin perder datos. */
+function cfgSnapshot(){
+  const k=["condicion","sku","stock","paqAncho","paqAlto","paqProf","paqPeso","cuotas","costoCuotas","tipoGarantia","tiempoGarantia","unidadGarantia",
+           "formaEnvio","costoEnvio","retiro","etiqueta","libreria","retiroTexto","tituloItalica","fotoGenerica"];
+  const o={}; k.forEach(x=>o[x]=C[x]); return o;
+}
+function migrarViejo(fila){
+  // Migra un libro guardado con el formato anterior (columnas) al nuevo (vals), sin perder lo que se pueda.
+  const REV={ title:"Título", precio:"Precio [$]", descripcion:"Descripción", sku:"SKU", condicion:"Condición",
+    isbn:"ISBN", titulo_libro:"Título del libro", autor:"Autor", editorial:"Editorial del libro",
+    subtitulo:"Subtítulo del libro", serie:"Serie", idioma:"Idioma", edicion:"Edición del libro",
+    tapa:"Tapa del libro", indice:"Índice", anio:"Año de publicación", coautores:"Coautores",
+    traductores:"Traductores", tipo_narracion:"Tipo de narración", pais_origen:"País de origen",
+    coleccion:"Colección del libro", paginas:"Cantidad de páginas", altura_cm:"Altura", ancho_cm:"Ancho",
+    peso_g:"Peso", material_tapa:"Material de la tapa del libro" };
+  const vals={}; for(const id in REV){ vals[id]=fila[REV[id]]||""; }
+  ["estado","ciudad","grosor_cm"].forEach(k=>{ if(vals[k]==null) vals[k]=""; });
+  const m=fila.__meta||{};
+  return { vals, cfg:cfgSnapshot(), prosa:"", confianza:m.confianza||"", observaciones:m.observaciones||"" };
+}
+function cargarLibros(){
+  try{
+    const v3=localStorage.getItem("extractorLibrosV3");
+    if(v3!=null) return JSON.parse(v3);
+    const v2=localStorage.getItem("extractorLibrosV2");
+    if(v2) return JSON.parse(v2).map(migrarViejo);
+    return [];
+  }catch(e){ return []; }
+}
+function guardarLibros(){ localStorage.setItem("extractorLibrosV3", JSON.stringify(libros)); }
+
+function pintarCfg(){
+  $("proveedor").value=C.proveedor; $("apiKey").value=C.apiKey; $("modelo").value=C.modelo||""; $("proxyPrecios").value=C.proxyPrecios||""; $("proxyBne").value=C.proxyBne||""; $("fotoGenerica").value=C.fotoGenerica||""; $("isbnGenerico").value=C.isbnGenerico||"";
+  $("etiqueta").value=C.etiqueta; $("condicionDef").value=C.condicion; $("sku").value=C.sku; $("stock").value=C.stock;
+  $("precioModo").value=C.precioModo; $("precioFijo").value=C.precioFijo;
+  $("paqAncho").value=C.paqAncho; $("paqAlto").value=C.paqAlto; $("paqProf").value=C.paqProf; $("paqPeso").value=C.paqPeso;
+  $("formaEnvio").value=C.formaEnvio; $("costoEnvio").value=C.costoEnvio; $("retiro").value=C.retiro;
+  $("cuotas").value=C.cuotas; $("costoCuotas").value=C.costoCuotas;
+  $("tipoGarantia").value=C.tipoGarantia||""; $("tiempoGarantia").value=C.tiempoGarantia||""; $("unidadGarantia").value=C.unidadGarantia||"";
+  $("libreria").value=C.libreria||""; $("retiroTexto").value=C.retiroTexto||""; $("tituloItalica").checked=!!C.tituloItalica;
+  $("keyHelp").innerHTML=KEY_HELP[C.proveedor]||"";
+  $("precioFijoWrap").classList.toggle("hidden", C.precioModo!=="fijo");
+  $("cfgResumen").textContent=C.apiKey ? (C.proveedor+" ✓") : "sin clave";
+  if(!C.apiKey) $("configDetails").open=true;
+}
+$("proveedor").addEventListener("change", ()=>{ $("keyHelp").innerHTML=KEY_HELP[$("proveedor").value]||""; });
+$("precioModo").addEventListener("change", ()=>{ $("precioFijoWrap").classList.toggle("hidden", $("precioModo").value!=="fijo"); });
+$("guardarCfg").addEventListener("click", ()=>{
+  const t=id=>$(id).value.trim();
+  C={ proveedor:$("proveedor").value, apiKey:t("apiKey"), modelo:t("modelo"), proxyPrecios:t("proxyPrecios"), proxyBne:t("proxyBne"),
+    fotoGenerica:t("fotoGenerica"), isbnGenerico:t("isbnGenerico"), etiqueta:t("etiqueta"),
+    condicion:$("condicionDef").value, sku:t("sku"), stock:t("stock")||"1",
+    precioModo:$("precioModo").value, precioFijo:t("precioFijo"),
+    paqAncho:t("paqAncho"), paqAlto:t("paqAlto"), paqProf:t("paqProf"), paqPeso:t("paqPeso"),
+    formaEnvio:t("formaEnvio"), costoEnvio:t("costoEnvio"), retiro:t("retiro"),
+    cuotas:t("cuotas"), costoCuotas:t("costoCuotas"),
+           tipoGarantia:t("tipoGarantia"), tiempoGarantia:t("tiempoGarantia"), unidadGarantia:t("unidadGarantia"),
+    libreria:t("libreria"), retiroTexto:$("retiroTexto").value.trim(), tituloItalica:$("tituloItalica").checked };
+  guardarCfgStorage(); pintarCfg();
+  setStatus("ok","Configuración guardada.");
+  $("configDetails").open=false;
+});
+
+/* ---------- Estado / UI ---------- */
+function setStatus(tipo,html){ const s=$("status"); s.className="status "+tipo; s.innerHTML=html; s.classList.remove("hidden"); }
+function clearStatus(){ $("status").classList.add("hidden"); }
+
+/* ---------- Generar campos del libro ---------- */
+function construirCampos(){
+  const cont=$("camposGrid");
+  cont.innerHTML="";
+  CAMPOS.forEach(c=>{
+    const wrap=document.createElement("div"); wrap.className="field";
+    const lab=document.createElement("label"); lab.textContent=c.label; wrap.appendChild(lab);
+    let el;
+    if(c.type==="select"){
+      el=document.createElement("select");
+      c.opts.forEach(o=>{ const op=document.createElement("option"); op.value=o; op.textContent=o||"(vacío)"; el.appendChild(op); });
+    }else{
+      el=document.createElement("input"); el.type="text"; el.className="withcopy";
+      const cp=document.createElement("button"); cp.className="copy"; cp.dataset.for="f_"+c.id; cp.textContent="copiar";
+      wrap.appendChild(el); wrap.appendChild(cp);
+      el.id="f_"+c.id; cont.appendChild(wrap);
+      if(c.id==="titulo_libro"||c.id==="autor") el.addEventListener("input",()=>{ regenerarTitulo(); chequearDupCampos(); });
+      if(c.id==="isbn"){
+        const row=document.createElement("label");
+        row.style.cssText="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted,#666);cursor:pointer";
+        const chk=document.createElement("input"); chk.type="checkbox"; chk.id="chkIsbnGen"; chk.style.width="auto";
+        chk.addEventListener("change",()=>{
+          if(chk.checked){ el.value=generarCodigoInterno(); }
+          else if(esCodigoInterno(el.value)){ el.value=""; }
+          el.dispatchEvent(new Event("input"));
+        });
+        const sp=document.createElement("span"); sp.textContent="Libro sin ISBN: generar un código único (uno distinto por libro)";
+        row.appendChild(chk); row.appendChild(sp); wrap.appendChild(row);
+        const msg=document.createElement("div"); msg.id="isbnMsg"; msg.style.cssText="font-size:12px;margin-top:4px";
+        const chequear=()=>{
+          const val=el.value.trim();
+          if(!val){ msg.textContent=""; return; }
+          if(esCodigoInterno(val)){ msg.textContent="Código interno único ✓ (no coincide con ningún libro del catálogo de ML)"; msg.style.color="#1a7f37"; }
+          else if(isbnValido(val)){ msg.textContent="ISBN válido ✓"; msg.style.color="#1a7f37"; }
+          else{ msg.textContent="⚠️ ISBN inválido (revisá el dígito de control)"; msg.style.color="#b3261e"; }
+        };
+        el.addEventListener("input",()=>{ chequear(); chequearDupCampos(); }); chk.addEventListener("change",chequear);
+        wrap.appendChild(msg);
+      }
+      return;
+    }
+    el.id="f_"+c.id; wrap.appendChild(el); cont.appendChild(wrap);
+  });
+}
+
+/* ---------- Prompt ---------- */
+const CLAVES = "titulo_libro, subtitulo, autor, coautores, traductores, editorial, coleccion, serie, edicion, idioma, tapa, indice, anio, isbn, tipo_narracion, paginas, tema_genero, pais_origen, altura_cm, ancho_cm, peso_g, material_tapa, condicion, estado, descripcion, precio_sugerido_min, precio_sugerido_max, confianza, observaciones";
+const ESQUEMA =
+`{"titulo_libro":"","subtitulo":"","autor":"","coautores":"","traductores":"","editorial":"","coleccion":"","serie":"","edicion":"","idioma":"","tapa":"","indice":"","anio":"","isbn":"","tipo_narracion":"","paginas":"","tema_genero":"","ciudad":"","pais_origen":"","altura_cm":"","ancho_cm":"","grosor_cm":"","peso_g":"","material_tapa":"","condicion":"","estado":"","descripcion":"","precio_sugerido_min":null,"precio_sugerido_max":null,"confianza":"alta|media|baja","observaciones":""}`;
+const REGLAS =
+`Reglas de formato de cada libro:
+- "idioma": nombre en español (Español, Inglés, Italiano, Ruso, Francés, Alemán, Portugués, Latín, Griego, etc.). El idioma puede NO ser español: leé el alfabeto real.
+- "tapa": exactamente "Dura" o "Blanda" (o "" si no se sabe).
+- "indice": "Sí" o "No" (o "").
+- "tipo_narracion": p. ej. Novela, Cuento, Poesía, Ensayo, Teatro, Antología (o "").
+- "condicion": "Usado" salvo que claramente sea nuevo.
+- "estado": frase corta del estado del ejemplar: "Buen estado", "Muy buen estado", "Excelente estado", "Usado con marcas de uso", etc.
+- "ciudad": ciudad de edición (donde se editó/publicó), si aparece o la conocés (ej. Barcelona, Buenos Aires).
+- "isbn": si aparece en alguna foto (contratapa / hoja de créditos), transcribilo (solo números).
+- "paginas": solo número. "peso_g": peso del libro en gramos (número); NO se puede medir por foto, dejalo "" salvo estimación razonable.
+- MEDICIÓN CON REGLA: si en la foto hay una regla o un objeto de tamaño conocido (tarjeta = 8.5 cm, moneda de $1 argentina ≈ 2.3 cm, etc.), usalo como escala para medir "altura_cm" (alto), "ancho_cm" (ancho) y "grosor_cm" (grosor del lomo) del libro, en cm. Si no hay referencia, estimá solo si es razonable; si no, dejá "". Indicá en "observaciones" qué referencia usaste.
+- "descripcion": 2 a 4 oraciones en español neutro (de qué trata + datos del ejemplar), sin exagerar.
+- "precio_sugerido_min"/"precio_sugerido_max": rango orientativo en pesos argentinos para un usado en ML (enteros). Es SOLO referencia.
+- Si algo está borroso o no se ve: dejá "" y bajá la "confianza". NO inventes.`;
+
+const INSTRUCCIONES =
+`Sos un experto en catalogación de libros (usados, antiguos y raros) para vender en Mercado Libre Argentina.
+Podés recibir VARIAS fotos, y todas son del MISMO libro. Cada foto suele mostrar una parte distinta y aportar datos distintos:
+- tapa: título, autor, a veces colección o editorial
+- lomo: título, autor, editorial, número de tomo
+- contratapa: sinopsis, a veces ISBN y código de barras, precio
+- portadilla / portada interior: título completo, subtítulo, traductor, editorial
+- hoja de créditos (página legal, al dorso de la portada): editorial, ciudad, año y número de edición, ISBN, traductor, título original
+- colofón (última página): fecha e imprenta
+- una foto con regla o una tarjeta al lado: sirve para medir
+Revisá TODAS las fotos, una por una, y juntá los datos de cada una en un ÚNICO objeto. Un dato que no aparece en una foto puede estar en otra: no lo dejes vacío sin haber mirado todas.
+Si un dato aparece en más de una foto con valores distintos, priorizá la hoja de créditos. El año es el de ESTA edición (créditos o colofón), no el de la obra original.
+También podés recibir un dato textual en lugar de fotos.
+Devolvé EXCLUSIVAMENTE un JSON válido con EXACTAMENTE estas claves (usá "" cuando no tengas el dato con razonable seguridad):
+${ESQUEMA}
+${REGLAS}
+No agregues nada fuera del JSON.`;
+
+const INSTRUCCIONES_VARIOS =
+`Sos un experto en catalogación de libros para vender en Mercado Libre Argentina. Recibís varias fotos que corresponden a VARIOS libros distintos.
+MUY IMPORTANTE: de cada libro suele haber VARIAS fotos (tapa, lomo, contratapa, hoja de créditos, colofón), y cada una aporta datos distintos.
+Tu tarea es AGRUPAR las fotos que son del MISMO libro y devolver UN SOLO objeto por libro, combinando los datos de todas sus fotos.
+Para decidir si dos fotos son del mismo libro fijate en: título, autor, editorial, diseño y colores de la tapa, tipografía, estado del ejemplar. Las fotos de un mismo libro suelen llegar SEGUIDAS.
+Nunca devuelvas un objeto por foto: una hoja de créditos o una contratapa sola no son un libro aparte, pertenecen al libro de las fotos vecinas.
+Si un dato aparece en varias fotos del mismo libro con valores distintos, priorizá la hoja de créditos. El año es el de ESTA edición, no el de la obra original.
+También puede tratarse de una sola foto con varios libros juntos (una pila, un estante): en ese caso identificá cada libro que se vea con claridad.
+Devolvé EXCLUSIVAMENTE un JSON válido con esta forma:
+{"libros":[ OBJ, OBJ, ... ]}
+donde cada OBJ tiene EXACTAMENTE estas claves (usá "" cuando no tengas el dato):
+${ESQUEMA}
+${REGLAS}
+- No inventes libros que no se ven. Si ves uno solo, devolvé un array de 1. Ignorá los que no puedas leer.
+No agregues nada fuera del JSON.`;
+
+function promptTexto(dato){
+  let p=INSTRUCCIONES;
+  if(dato) p+=`\nNo hay foto. Identificá el libro a partir de: "${dato}"`;
+  return p;
+}
+
+/* ---------- Imagen ---------- */
+function fileADataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function achicar(dataURL, max=1600){
+  return new Promise((res)=>{
+    const img=new Image();
+    img.onload=()=>{
+      let {width:w,height:h}=img;
+      if(Math.max(w,h)>max){ const e=max/Math.max(w,h); w=Math.round(w*e); h=Math.round(h*e); }
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      res(c.toDataURL("image/jpeg",0.85));
+    };
+    img.onerror=()=>res(dataURL);
+    img.src=dataURL;
+  });
+}
+
+/* ---------- IA ----------
+   imagenes = array de {b64, mime} (puede ser [] para solo texto) */
+// fetch con límite de tiempo: si el servidor de IA se cuelga, corta en vez de quedar trabado.
+async function fetchT(url, opts, ms){
+  const ac=new AbortController();
+  const t=setTimeout(()=>ac.abort(), ms||90000);
+  try{ return await fetch(url, Object.assign({}, opts, {signal:ac.signal})); }
+  catch(e){ if(e && e.name==="AbortError") throw new Error("La IA no respondió a tiempo (puede estar saturada). Reintentá, o cambiá de servicio en ⚙️ Configuración."); throw e; }
+  finally{ clearTimeout(t); }
+}
+async function llamarIA(prompt, imagenes){
+  imagenes = imagenes || [];
+  if(!C.apiKey) throw new Error("Falta la API key. Abrí ⚙️ Configuración y pegá tu clave.");
+  if(C.proveedor==="gemini") return llamarGemini(prompt,imagenes);
+  if(C.proveedor==="openai") return llamarOAI("https://api.openai.com/v1/chat/completions", MODELOS.openai, prompt, imagenes, true);
+  if(C.proveedor==="grok") return llamarOAI("https://api.x.ai/v1/chat/completions", MODELOS.grok, prompt, imagenes, true);
+  if(C.proveedor==="deepseek") return llamarOAI("https://api.deepseek.com/chat/completions", MODELOS.deepseek, prompt, imagenes, false);
+  if(C.proveedor==="anthropic") return llamarAnthropic(prompt,imagenes);
+  throw new Error("Proveedor desconocido");
+}
+let geminiCandidatos=null; const geminiMalos=new Set();
+function puntajeModelo(n){ let s=0;
+  if(/flash/i.test(n)) s+=100; if(/latest/i.test(n)) s+=60; if(/2\.0/.test(n)) s+=15;
+  if(/lite/i.test(n)) s-=25;
+  if(/(exp|preview|thinking|tts|image|embedding|vision|aqa|learnlm|gemma)/i.test(n)) s-=300;
+  if(/(1\.5|1\.0|8b)/.test(n)) s-=120; return s; }
+async function listarModelosGemini(){
+  const r=await fetchT(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(C.apiKey)}`, {}, 30000);
+  if(!r.ok) throw new Error(await mensajeError(r));
+  const d=await r.json();
+  return (d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent"))
+    .map(m=>m.name.replace(/^models\//,"")).sort((a,b)=>puntajeModelo(b)-puntajeModelo(a));
+}
+async function pedirGemini(modelo,prompt,imagenes){
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${encodeURIComponent(C.apiKey)}`;
+  const parts=[{text:prompt}];
+  imagenes.forEach(im=>parts.push({inline_data:{mime_type:im.mime,data:im.b64}}));
+  return fetchT(url,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({contents:[{parts}],generationConfig:{response_mime_type:"application/json",temperature:0.1}})});
+}
+async function leerGemini(r){ const d=await r.json(); return d.candidates[0].content.parts[0].text; }
+const _esTransitorio = s => [429,500,502,503,504].includes(s);
+async function llamarGemini(prompt,imagenes){
+  // Lista de modelos disponibles (con el modelo fijo, si hay, primero).
+  let lista=[];
+  try{ if(!geminiCandidatos) geminiCandidatos=await listarModelosGemini(); lista=geminiCandidatos.slice(); }
+  catch(e){ if(!C.modelo) throw e; }
+  if(C.modelo) lista=[C.modelo, ...lista.filter(n=>n!==C.modelo)];
+  lista=lista.filter(n=>!geminiMalos.has(n)).slice(0,5);   // probar solo los mejores, no decenas
+  if(!lista.length) throw new Error("Ningún modelo de Gemini de tu clave está disponible. Generá la clave en un proyecto nuevo, o usá otro servicio (Grok/OpenAI/Claude).");
+  let ultTrans=null, huboTrans=false;
+  for(let pasada=0; pasada<2; pasada++){
+    for(const modelo of lista){
+      if(geminiMalos.has(modelo)) continue;
+      const r=await pedirGemini(modelo,prompt,imagenes);
+      if(r.ok) return leerGemini(r);
+      const st=r.status, msg=await mensajeError(r);
+      if(st===404){ geminiMalos.add(modelo); continue; }        // no existe: descartarlo
+      if(_esTransitorio(st)){ huboTrans=true; ultTrans=msg; continue; }  // sobrecarga: probar otro
+      throw new Error(msg);                                      // error real (clave, cuota, etc.)
+    }
+    if(!huboTrans) break;
+    if(pasada===0) await new Promise(res=>setTimeout(res,2500)); // esperar y reintentar una vez
+  }
+  if(huboTrans) throw new Error("Los modelos de Gemini están sobrecargados en este momento (503). Reintentá en unos segundos, o cambiá a otro servicio (Grok / OpenAI / Claude) en ⚙️ Configuración. "+(ultTrans||""));
+  throw new Error("Ningún modelo de Gemini de tu clave respondió. Generá la clave en un proyecto nuevo, o usá otro servicio (Grok/OpenAI/Claude).");
+}
+// Caller genérico para APIs compatibles con OpenAI (OpenAI, Grok/xAI, DeepSeek).
+async function llamarOAI(url, modeloDef, prompt, imagenes, permiteFotos){
+  if(imagenes.length && !permiteFotos)
+    throw new Error("Este proveedor no puede leer fotos. Usalo con ISBN o texto, o elegí Gemini / Grok / OpenAI / Claude para leer la tapa.");
+  let content=prompt;
+  if(imagenes.length){
+    content=[{type:"text",text:prompt}];
+    imagenes.forEach(im=>content.push({type:"image_url",image_url:{url:`data:${im.mime};base64,${im.b64}`}}));
+  }
+  const r=await fetchT(url,{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+C.apiKey},
+    body:JSON.stringify({model:C.modelo||modeloDef,messages:[{role:"user",content}],response_format:{type:"json_object"},temperature:0.1})});
+  if(!r.ok) throw new Error(await mensajeError(r));
+  return (await r.json()).choices[0].message.content;
+}
+async function llamarAnthropic(prompt,imagenes){
+  const content=[];
+  imagenes.forEach(im=>content.push({type:"image",source:{type:"base64",media_type:im.mime,data:im.b64}}));
+  content.push({type:"text",text:prompt});
+  const r=await fetchT("https://api.anthropic.com/v1/messages",{method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":C.apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:C.modelo||MODELOS.anthropic,max_tokens:2000,temperature:0.1,messages:[{role:"user",content}]})});
+  if(!r.ok) throw new Error(await mensajeError(r));
+  return (await r.json()).content[0].text;
+}
+async function mensajeError(r){
+  let extra=""; try{ const j=await r.json(); extra=(j.error&&(j.error.message||j.error))||JSON.stringify(j); }catch(e){}
+  const txt=(extra||"").toString().toLowerCase();
+  if(r.status===401||r.status===403) return "Clave inválida o sin permiso (HTTP "+r.status+"). "+extra;
+  if(r.status===429){
+    if(txt.includes("limit: 0")||txt.includes("free_tier")||txt.includes("quota"))
+      return "Esta API key no tiene cuota gratuita (Gemini free tier = 0). NO se soluciona esperando: generá una clave NUEVA en https://aistudio.google.com/app/apikey con «Create API key in a new project». (Detalle: "+extra+")";
+    return "Límite temporal por minuto (HTTP 429). Esperá unos segundos y reintentá. "+extra;
+  }
+  return "Error HTTP "+r.status+". "+extra;
+}
+function parsearJSON(t){
+  t=t.trim().replace(/^```(json)?/,"").replace(/```$/,"").trim();
+  try{ return JSON.parse(t); }catch(e){ const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]); throw new Error("La IA no devolvió datos legibles."); }
+}
+
+/* ---------- Enriquecimiento gratis desde internet (Google Books / OpenLibrary) ---------- */
+const IDIOMAS={es:"Español",en:"Inglés",it:"Italiano",ru:"Ruso",fr:"Francés",de:"Alemán",pt:"Portugués",la:"Latín",el:"Griego",ca:"Catalán",eu:"Vasco",gl:"Gallego"};
+async function googleBooks(q){
+  try{
+    const r=await fetch("https://www.googleapis.com/books/v1/volumes?maxResults=1&q="+encodeURIComponent(q));
+    const d=await r.json();
+    if(!d.items||!d.items.length) return {};
+    const v=d.items[0].volumeInfo||{};
+    const isbnObj=(v.industryIdentifiers||[]).find(x=>/ISBN/.test(x.type));
+    return {titulo_libro:v.title||"", subtitulo:v.subtitle||"", autor:(v.authors||[]).join(", "),
+      editorial:v.publisher||"", anio:(v.publishedDate||"").slice(0,4), idioma:IDIOMAS[v.language]||v.language||"",
+      paginas:v.pageCount?String(v.pageCount):"", tema_genero:(v.categories||[]).join(", "),
+      descripcion:v.description||"", isbn:isbnObj?isbnObj.identifier:"", ...gbDimensiones(v.dimensions)};
+  }catch(e){ return {}; }
+}
+async function openLibraryISBN(isbn){
+  try{
+    const r=await fetch("https://openlibrary.org/api/books?format=json&jscmd=data&bibkeys=ISBN:"+encodeURIComponent(isbn));
+    const d=await r.json(); const k="ISBN:"+isbn; const v=d[k]; if(!v) return {};
+    return {titulo_libro:v.title||"", subtitulo:v.subtitle||"",
+      autor:(v.authors||[]).map(a=>a.name).join(", "),
+      editorial:(v.publishers||[]).map(p=>p.name).join(", "),
+      anio:(v.publish_date||"").match(/\d{4}/)? (v.publish_date.match(/\d{4}/)[0]):"",
+      paginas:v.number_of_pages?String(v.number_of_pages):"",
+      ciudad:(v.publish_places||[]).map(p=>p.name).join(", ")};
+  }catch(e){ return {}; }
+}
+// Redondeo hacia arriba con 1 cm de margen para el envío (21.2 -> 23, 24 -> 25).
+function redondearCm(n){ return String(Math.ceil(n)+1); }
+// Parsea "20.3 x 13.3 x 2 centimeters" / "8 x 5 x 0.5 inches" -> {altura_cm, ancho_cm, grosor_cm} (redondeado)
+function parseDimensiones(s){
+  if(!s) return {};
+  const nums=(String(s).match(/[\d.]+/g)||[]).map(Number).filter(n=>!isNaN(n));
+  if(nums.length<3) return {};
+  const f=/inch|"/i.test(s)?2.54:1;
+  const cm=nums.slice(0,3).map(n=>redondearCm(n*f));
+  return {altura_cm:cm[0], ancho_cm:cm[1], grosor_cm:cm[2]};
+}
+// Google Books a veces trae volumeInfo.dimensions {height,width,thickness} (ej. "24.00 cm"), en cualquier idioma.
+function gbDimensiones(dm){
+  if(!dm || !dm.height || !dm.width || !dm.thickness) return {};
+  return parseDimensiones(dm.height+" x "+dm.width+" x "+dm.thickness);
+}
+// Parsea "340 grams" / "1.2 pounds" / "12 ounces" -> gramos (string)
+function parsePeso(s){
+  if(!s) return "";
+  const n=parseFloat((String(s).match(/[\d.]+/)||[])[0]); if(isNaN(n)) return "";
+  if(/pound|\blb/i.test(s)) return String(Math.round(n*453.592));
+  if(/ounce|\boz/i.test(s)) return String(Math.round(n*28.35));
+  if(/kg|kilo/i.test(s)) return String(Math.round(n*1000));
+  return String(Math.round(n)); // gramos
+}
+// OpenLibrary jscmd=details: trae medidas físicas y peso (además de páginas/editorial/año/lugar).
+async function openLibraryDetails(isbn){
+  try{
+    const r=await fetch("https://openlibrary.org/api/books?format=json&jscmd=details&bibkeys=ISBN:"+encodeURIComponent(isbn));
+    const d=await r.json(); const v=(d["ISBN:"+isbn]||{}).details; if(!v) return {};
+    const out={};
+    if(v.number_of_pages) out.paginas=String(v.number_of_pages);
+    if(v.publishers&&v.publishers.length) out.editorial=v.publishers.join(", ");
+    if(v.publish_places&&v.publish_places.length) out.ciudad=v.publish_places.join(", ");
+    if(v.publish_date){ const mm=String(v.publish_date).match(/\d{4}/); if(mm) out.anio=mm[0]; }
+    Object.assign(out, parseDimensiones(v.physical_dimensions));
+    const w=parsePeso(v.weight); if(w) out.peso_g=w;
+    return out;
+  }catch(e){ return {}; }
+}
+// BNE (Biblioteca Nacional de España) vía Worker proxy: bueno para libros en español (medidas y páginas).
+async function bneDetails(isbn){
+  if(!C.proxyBne) return {};
+  try{
+    const sep=C.proxyBne.indexOf("?")>=0?"&":"?";
+    const r=await fetch(C.proxyBne+sep+"isbn="+encodeURIComponent(isbn));
+    const d=await r.json();
+    const out={};
+    if(d.paginas) out.paginas=String(d.paginas);
+    if(d.altura_cm) out.altura_cm=redondearCm(parseFloat(d.altura_cm));
+    if(d.ancho_cm) out.ancho_cm=redondearCm(parseFloat(d.ancho_cm));
+    if(d.editorial) out.editorial=d.editorial;
+    if(d.anio) out.anio=String(d.anio);
+    if(d.ciudad) out.ciudad=d.ciudad;
+    return out;
+  }catch(e){ return {}; }
+}
+async function openLibraryBuscar(titulo, autor){
+  try{
+    const u="https://openlibrary.org/search.json?limit=1&fields=title,author_name,first_publish_year,publisher,number_of_pages_median&title="
+      + encodeURIComponent(titulo) + (autor?("&author="+encodeURIComponent(autor)):"");
+    const r=await fetch(u); const d=await r.json();
+    const doc=(d.docs||[])[0]; if(!doc) return {};
+    return { paginas: doc.number_of_pages_median?String(doc.number_of_pages_median):"",
+             editorial:(doc.publisher||[])[0]||"",
+             anio: doc.first_publish_year?String(doc.first_publish_year):"" };
+  }catch(e){ return {}; }
+}
+function rellenar(datos, extra){ for(const k in extra){ if(extra[k] && !(String(datos[k]||"").trim())) datos[k]=extra[k]; } }
+async function enriquecer(datos){
+  // Las medidas que mide la IA con la regla pueden traer decimales: redondearlas hacia arriba
+  // (las que vengan de las bases de datos ya vienen redondeadas).
+  ["altura_cm","ancho_cm","grosor_cm"].forEach(k=>{
+    const v=String(datos[k]||"").trim(); if(!v) return;
+    const n=parseFloat(v.replace(",",".")); if(!isNaN(n)) datos[k]=redondearCm(n);
+  });
+  { const v=String(datos.peso_g||"").trim(); if(v){ const n=parseFloat(v.replace(",",".")); if(!isNaN(n)) datos.peso_g=String(Math.round(n)); } }
+  const isbn=(datos.isbn||"").replace(/[^0-9Xx]/g,"");
+  if(isbn.length===10||isbn.length===13){
+    rellenar(datos, await googleBooks("isbn:"+isbn));
+    rellenar(datos, await openLibraryISBN(isbn));
+    // Medidas/peso del libro (si faltan y OpenLibrary los tiene).
+    if(!String(datos.altura_cm||"").trim() || !String(datos.peso_g||"").trim()){
+      rellenar(datos, await openLibraryDetails(isbn));
+    }
+    // BNE: si todavía faltan las medidas, probamos la Biblioteca Nacional de España (mejor para español).
+    if(!String(datos.altura_cm||"").trim()){
+      rellenar(datos, await bneDetails(isbn));
+    }
+  }
+  // Búsqueda por título (siempre que falten datos): completa páginas/editorial/año en libros sin ISBN.
+  if((datos.titulo_libro||"").trim()){
+    if(!String(datos.paginas||"").trim() || !String(datos.editorial||"").trim() || !String(datos.anio||"").trim()){
+      const q="intitle:"+datos.titulo_libro+(datos.autor?(" inauthor:"+datos.autor):"");
+      rellenar(datos, await googleBooks(q));
+    }
+    if(!String(datos.paginas||"").trim()){
+      rellenar(datos, await openLibraryBuscar(datos.titulo_libro, datos.autor));
+    }
+  }
+  return datos;
+}
+
+/* ---------- Fotos pendientes (varias del mismo libro o de varios) ---------- */
+let fotosPendientes = [];   // {dataURL, b64, mime}
+let colaLibros = [];        // libros detectados pendientes de revisar
+
+async function agregarFoto(file){
+  const dataURL=await fileADataURL(file);
+  const chico=await achicar(dataURL);
+  fotosPendientes.push({ dataURL:chico, b64:chico.split(",")[1], mime:"image/jpeg" });
+  pintarThumbs();
+}
+function pintarThumbs(){
+  const cont=$("thumbs"); cont.innerHTML="";
+  fotosPendientes.forEach((f,i)=>{
+    const d=document.createElement("div"); d.className="th";
+    d.innerHTML=`<img src="${f.dataURL}" alt=""><button data-i="${i}" title="quitar">✕</button>`;
+    d.querySelector("button").addEventListener("click",()=>{ fotosPendientes.splice(i,1); pintarThumbs(); });
+    cont.appendChild(d);
+  });
+  $("btnAnalizar").classList.toggle("hidden", fotosPendientes.length===0);
+  $("btnAnalizar").textContent = fotosPendientes.length>1 ? `🔎 Analizar (${fotosPendientes.length} fotos)` : "🔎 Analizar";
+}
+
+/* ---------- Procesar ---------- */
+async function analizarFotos(){
+  if(!fotosPendientes.length){ setStatus("err","Agregá al menos una foto."); return; }
+  clearStatus(); ocultarResultado();
+  const imagenes=fotosPendientes.map(f=>({b64:f.b64,mime:f.mime}));
+  const varios=$("chkVarios").checked;
+  setStatus("load",'<span class="spin"></span> Leyendo con IA…');
+  try{
+    const nota = imagenes.length>1
+      ? `\n\nRecibís ${imagenes.length} fotos, en el orden en que se sacaron. Mirá las ${imagenes.length} antes de responder.`
+      : "";
+    if(varios){
+      const txt=await llamarIA(INSTRUCCIONES_VARIOS+nota, imagenes);
+      const o=parsearJSON(txt);
+      let arr = Array.isArray(o) ? o : (o.libros||o.books||[]);
+      if(!Array.isArray(arr)||!arr.length) throw new Error("No pude identificar libros en la(s) foto(s).");
+      colaLibros = arr;
+    }else{
+      const txt=await llamarIA(promptTexto("")+nota, imagenes);
+      colaLibros = [ parsearJSON(txt) ];
+    }
+    fotosPendientes=[]; pintarThumbs(); $("chkVarios").checked=false;
+    await mostrarSiguiente();
+  }catch(e){ setStatus("err","❌ "+e.message); }
+}
+async function mostrarSiguiente(){
+  if(!colaLibros.length){ ocultarResultado(); return; }
+  const datos=colaLibros.shift();
+  setStatus("load",'<span class="spin"></span> Buscando datos en internet…');
+  try{ await enriquecer(datos); }catch(e){}
+  mostrarResultado(datos);
+  const quedan=colaLibros.length;
+  const info=$("colaInfo");
+  if(quedan>0){ info.textContent="quedan "+quedan+" en cola"; info.classList.remove("hidden"); }
+  else info.classList.add("hidden");
+  clearStatus();
+}
+async function procesarManual(dato){
+  clearStatus(); ocultarResultado();
+  setStatus("load",'<span class="spin"></span> Buscando…');
+  try{
+    const soloDig=dato.replace(/[^0-9Xx]/g,"");
+    let datos;
+    if(soloDig.length===10||soloDig.length===13){
+      datos={isbn:soloDig, confianza:"alta"};
+      await enriquecer(datos);
+      if(!(datos.titulo_libro||"").trim()){ datos=parsearJSON(await llamarIA(promptTexto("ISBN "+dato),[])); await enriquecer(datos); }
+    }else{
+      datos=parsearJSON(await llamarIA(promptTexto(dato),[]));
+      await enriquecer(datos);
+    }
+    colaLibros=[]; $("colaInfo").classList.add("hidden");
+    mostrarResultado(datos); clearStatus();
+  }catch(e){ setStatus("err","❌ "+e.message); }
+}
+
+/* ---------- Validación de ISBN (dígito de control) ---------- */
+/* ---------- Código interno para libros sin ISBN ----------
+   GS1 reserva los prefijos 200–299 para "circulación restringida": son códigos de uso
+   interno que nunca se asignan a un producto real. Un código 200… con dígito de control
+   válido es un GTIN correcto, pero no puede coincidir con ningún libro del catálogo de ML,
+   así que ML no tiene con qué reemplazar la descripción propia.
+   Cada llamada devuelve uno distinto (contador guardado en el navegador). */
+function _digitoEAN13(doce){
+  let sum=0; for(let i=0;i<12;i++) sum+=(i%2?3:1)*(+doce[i]);
+  return String((10-(sum%10))%10);
+}
+function esCodigoInterno(raw){
+  const s=String(raw||"").replace(/\D/g,"");
+  return s.length===13 && s.startsWith("200") && _digitoEAN13(s.slice(0,12))===s[12];
+}
+function generarCodigoInterno(){
+  let n=0;
+  try{ n=parseInt(localStorage.getItem("codInternoSeq")||"0",10)||0; }catch(e){}
+  if(!n) n=Math.floor(Math.random()*9e8)+1e8;   // arranque al azar, 9 dígitos
+  // Ya usados en la lista actual o en las publicaciones importadas: no repetir.
+  const usados=new Set(libros.map(it=>String((it.vals&&it.vals.isbn)||"").replace(/\D/g,"")));
+  if(pubIndex && pubIndex.isbns) pubIndex.isbns.forEach(x=>usados.add(x));
+  let codigo;
+  do{
+    n=(n%999999999)+1;
+    const doce="200"+String(n).padStart(9,"0");
+    codigo=doce+_digitoEAN13(doce);
+  }while(usados.has(codigo));
+  try{ localStorage.setItem("codInternoSeq", String(n)); }catch(e){}
+  return codigo;
+}
+
+function isbnValido(raw){
+  const s=String(raw||"").replace(/[^0-9Xx]/g,"").toUpperCase();
+  if(s.length===13){
+    if(!/^\d{13}$/.test(s)) return false;
+    let sum=0; for(let i=0;i<12;i++) sum+=(i%2?3:1)*(+s[i]);
+    return (10-(sum%10))%10 === +s[12];
+  }
+  if(s.length===10){
+    if(!/^\d{9}[\dX]$/.test(s)) return false;
+    let sum=0; for(let i=0;i<9;i++) sum+=(10-i)*(+s[i]);
+    sum += (s[9]==="X"?10:+s[9]);
+    return sum%11===0;
+  }
+  return false;
+}
+
+/* ---------- Escáner de código de barras (ISBN) ---------- */
+const soportaScan = (typeof window!=="undefined") && ("BarcodeDetector" in window);
+let scanStream=null, scanTimer=null, scanDetector=null;
+async function abrirScanner(){
+  if(!soportaScan){ setStatus("err","Este navegador no puede escanear (probá Chrome en Android). Podés escribir el ISBN a mano."); return; }
+  try{
+    scanDetector = scanDetector || new BarcodeDetector({formats:["ean_13"]});
+    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const v=$("scanVideo"); v.srcObject=scanStream; await v.play();
+    $("scanOverlay").classList.remove("hidden");
+    scanLoop();
+  }catch(e){ setStatus("err","No pude abrir la cámara: "+(e.message||e)); cerrarScanner(); }
+}
+function cerrarScanner(){
+  if(scanTimer){ clearTimeout(scanTimer); scanTimer=null; }
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  const v=$("scanVideo"); if(v) v.srcObject=null;
+  $("scanOverlay").classList.add("hidden");
+}
+async function scanLoop(){
+  if(!scanStream) return;
+  try{
+    const codes=await scanDetector.detect($("scanVideo"));
+    const hit=(codes||[]).map(c=>String(c.rawValue||"").replace(/\D/g,"")).find(v=>/^97[89]\d{10}$/.test(v));
+    if(hit){ cerrarScanner(); $("manualTexto").value=hit; procesarManual(hit); return; }
+  }catch(e){}
+  scanTimer=setTimeout(scanLoop, 250);
+}
+
+/* ============================================================
+   Chequeo de duplicados: lee el Excel de publicaciones de ML
+   (en el navegador, sin librerías) y avisa si un libro ya está.
+   ============================================================ */
+async function _inflateRaw(bytes){
+  const ds=new DecompressionStream("deflate-raw");
+  const stream=new Response(new Blob([bytes]).stream().pipeThrough(ds));
+  return new Uint8Array(await stream.arrayBuffer());
+}
+function _rd16(b,o){ return b[o]|(b[o+1]<<8); }
+function _rd32(b,o){ return (b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0; }
+async function _leerZip(buf, quiere){
+  const b=new Uint8Array(buf); let eo=-1;
+  for(let i=b.length-22;i>=0;i--){ if(_rd32(b,i)===0x06054b50){ eo=i; break; } }
+  if(eo<0) throw new Error("No parece un Excel válido.");
+  const nEnt=_rd16(b,eo+10); let off=_rd32(b,eo+16); const salida={};
+  for(let n=0;n<nEnt;n++){
+    if(_rd32(b,off)!==0x02014b50) break;
+    const metodo=_rd16(b,off+10), compSize=_rd32(b,off+20);
+    const nameLen=_rd16(b,off+28), extraLen=_rd16(b,off+30), commLen=_rd16(b,off+32);
+    const loOff=_rd32(b,off+42);
+    const nombre=new TextDecoder().decode(b.subarray(off+46, off+46+nameLen));
+    off += 46+nameLen+extraLen+commLen;
+    if(!quiere(nombre)) continue;
+    const lNameLen=_rd16(b,loOff+26), lExtraLen=_rd16(b,loOff+28);
+    const dataOff=loOff+30+lNameLen+lExtraLen;
+    const comp=b.subarray(dataOff, dataOff+compSize);
+    salida[nombre] = metodo===0 ? comp.slice() : await _inflateRaw(comp);
+  }
+  return salida;
+}
+function _txt(bytes){ return new TextDecoder().decode(bytes); }
+function _unxml(s){ return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&"); }
+function _sharedStrings(xml){
+  if(!xml) return []; const res=[]; const re=/<si>([\s\S]*?)<\/si>/g; let m;
+  while((m=re.exec(xml))){ let s=""; const rt=/<t[^>]*>([\s\S]*?)<\/t>/g; let mm; while((mm=rt.exec(m[1]))) s+=mm[1]; res.push(_unxml(s)); }
+  return res;
+}
+function _colIdx(ref){ const m=/^([A-Z]+)/.exec(ref); if(!m) return 0; let n=0; for(const ch of m[1]) n=n*26+(ch.charCodeAt(0)-64); return n-1; }
+function _parseSheet(xml, shared){
+  const filas=[]; const reRow=/<row[^>]*>([\s\S]*?)<\/row>/g; let mr;
+  while((mr=reRow.exec(xml))){
+    const celdas=[]; const reC=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g; let mc;
+    while((mc=reC.exec(mr[1]))){
+      const attrs=mc[1]||"", inner=mc[2]||"";
+      const ref=(/r="([^"]+)"/.exec(attrs)||[])[1]||"";
+      const t=(/t="([^"]+)"/.exec(attrs)||[])[1]||"";
+      let val=""; const vv=/<v>([\s\S]*?)<\/v>/.exec(inner); const is=/<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+      if(t==="s" && vv) val=shared[parseInt(vv[1],10)]||"";
+      else if(vv) val=_unxml(vv[1]); else if(is) val=_unxml(is[1]);
+      const idx=ref?_colIdx(ref):celdas.length; celdas[idx]=val;
+    }
+    for(let i=0;i<celdas.length;i++) if(celdas[i]==null) celdas[i]="";
+    filas.push(celdas);
+  }
+  return filas;
+}
+// Devuelve TODAS las hojas (cada una = array de filas), en orden.
+async function _leerXlsx(buf){
+  const want=n=> n==="xl/sharedStrings.xml" || /^xl\/worksheets\/sheet\d+\.xml$/.test(n);
+  const ent=await _leerZip(buf, want);
+  const shared=_sharedStrings(ent["xl/sharedStrings.xml"]?_txt(ent["xl/sharedStrings.xml"]):"");
+  const hojas=Object.keys(ent).filter(n=>/worksheets\/sheet\d+\.xml$/.test(n))
+    .sort((a,b)=>(+/sheet(\d+)/.exec(a)[1])-(+/sheet(\d+)/.exec(b)[1]));
+  if(!hojas.length) throw new Error("El Excel no tiene hojas legibles.");
+  return hojas.map(h=>_parseSheet(_txt(ent[h]), shared));
+}
+function normText(s){
+  return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+}
+function detectarCols(headers){
+  const norm=headers.map(normText);
+  const find=res=>{ for(let i=0;i<norm.length;i++){ if(res.some(r=>r.test(norm[i]))) return i; } return -1; };
+  return {
+    titulo: find([/^title$/, /titulo del libro/, /^titulo/, /titulo/, /nombre/]),
+    isbn:   find([/isbn/, /codigo universal/, /\bean\b/, /gtin/]),
+    autor:  find([/^autor/, /autor/]),
+    sku:    find([/^sku$/, /\bsku\b/, /codigo interno/]),
+  };
+}
+// Palabras que delatan una fila de encabezado/rótulo (no datos reales).
+const _HDR_WORDS=new Set(["titulo","title","obligatorio","informacion del producto","publicaciones","condiciones de entrega","condiciones de publicacion"]);
+let pubIndex=null;   // {fecha,count,isbns:Set,skus:Set,titulos:[[tokens],...]}
+function cargarPubIndex(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("mlPublicaciones")||"null");
+    if(!raw) return null;
+    return {fecha:raw.fecha, count:raw.count,
+      isbns:new Set(raw.isbns||[]), skus:new Set(raw.skus||[]), titulos:raw.titulos||[]};
+  }catch(e){ return null; }
+}
+// Tokens significativos de un título (saca acentos, palabras cortas y la etiqueta del título).
+function tokensTitulo(s){
+  const et=normText((typeof C!=="undefined" && C.etiqueta)||"");
+  return normText(s).split(" ").filter(w=>w.length>=3 && w!==et);
+}
+async function importarPublicacionesML(file){
+  const st=$("dupStatus");
+  st.textContent="Leyendo el Excel…";
+  try{
+    const buf=await file.arrayBuffer();
+    const hojas=await _leerXlsx(buf);   // todas las hojas
+    // Buscar, en cualquier hoja, la fila de encabezados (título / ISBN / SKU).
+    let filas=null, hi=-1, cols=null;
+    for(const h of hojas){
+      for(let i=0;i<Math.min(h.length,20);i++){
+        const c=detectarCols(h[i]);
+        if(c.titulo>=0 || c.isbn>=0 || c.sku>=0){ filas=h; hi=i; cols=c; break; }
+      }
+      if(filas) break;
+    }
+    if(hi<0){
+      const muestra=(hojas.find(h=>h.some(r=>r.some(x=>String(x||"").trim())))||[[]])
+        .slice(0,4).map((f,i)=>"fila "+(i+1)+": "+f.filter(x=>String(x||"").trim()).slice(0,12).join(" | ")).join("  ||  ");
+      throw new Error("No reconocí las columnas. Esto es lo que veo → "+muestra+" — pasame esta lista y lo ajusto.");
+    }
+    const isbns=new Set(), skus=new Set(), titulos=[];
+    let n=0;
+    for(let i=hi+1;i<filas.length;i++){
+      const f=filas[i]; if(!f || !f.some(x=>String(x||"").trim())) continue;
+      const titulo=cols.titulo>=0?String(f[cols.titulo]||""):"";
+      const tnorm=normText(titulo);
+      const isbn=cols.isbn>=0?String(f[cols.isbn]||"").replace(/[^0-9Xx]/g,""):"";
+      const sku=cols.sku>=0?String(f[cols.sku]||"").trim():"";
+      // Saltar filas de encabezado/rótulo repetidas (ML tiene varias antes de los datos).
+      if(_HDR_WORDS.has(tnorm)) continue;
+      if(!tnorm && !isbn && !sku) continue;
+      if(isbn.length>=10) isbns.add(isbn);
+      if(sku) skus.add(sku.toLowerCase());
+      if(tnorm){ const tk=tokensTitulo(titulo); if(tk.length) titulos.push(tk); }
+      n++;
+    }
+    const fecha=new Date().toISOString().slice(0,10);
+    localStorage.setItem("mlPublicaciones", JSON.stringify({fecha, count:n,
+      isbns:[...isbns], skus:[...skus], titulos}));
+    pubIndex=cargarPubIndex();
+    const detce=["Título", cols.isbn>=0?"ISBN":"", cols.sku>=0?"SKU":""].filter(Boolean).join(", ");
+    st.innerHTML="✅ Importadas <b>"+n+"</b> publicaciones. Columnas usadas: "+detce+". El aviso compara por <b>título</b>.";
+    pintarDupResumen();
+  }catch(e){
+    st.innerHTML='<span style="color:#b3261e">❌ No pude leer el Excel: '+escapeHTML(e.message||String(e))+'</span>';
+  }
+}
+function pintarDupResumen(){
+  const p=$("dupResumen"), b=$("btnVaciarDup");
+  if(pubIndex && pubIndex.count){ p.textContent=pubIndex.count+" publicaciones ("+pubIndex.fecha+")"; b.classList.remove("hidden"); }
+  else{ p.textContent="sin cargar"; b.classList.add("hidden"); }
+}
+// ¿El título candidato se parece a alguno ya publicado? (comparación por tokens)
+function tituloParecido(cand){
+  const tk=tokensTitulo(cand); if(tk.length<2) return false;
+  const setC=new Set(tk);
+  for(const t of pubIndex.titulos){
+    if(t.length<2) continue;
+    let shared=0; for(const w of t) if(setC.has(w)) shared++;
+    const ratio=shared/Math.min(tk.length, t.length);
+    if(shared>=3 && ratio>=0.6) return true;
+    if(shared>=2 && ratio>=0.85) return true;
+  }
+  return false;
+}
+// Devuelve el motivo por el que un libro ya estaría publicado, o "".
+function yaPublicado(datos){
+  if(!pubIndex || !pubIndex.count) return "";
+  const isbn=String(datos.isbn||"").replace(/[^0-9Xx]/g,"");
+  if(isbn.length>=10 && pubIndex.isbns && pubIndex.isbns.has(isbn)) return "ISBN";
+  const sku=String(datos.sku||"").trim().toLowerCase();
+  if(sku && pubIndex.skus && pubIndex.skus.has(sku)) return "SKU";
+  // El "Título" de ML es el título de la publicación (título del libro + autor + etiqueta).
+  const base=String(datos.titulo||"").trim() || ((datos.titulo_libro||"")+" "+(datos.autor||"")).trim();
+  if(pubIndex.titulos && pubIndex.titulos.length && tituloParecido(base)) return "título";
+  return "";
+}
+function chequearDupActual(d){
+  const box=$("dupWarn"); if(!box) return;
+  const motivo=yaPublicado(d);
+  if(motivo){ box.innerHTML="⚠️ <b>Puede que ya tengas este libro publicado</b> en ML (coincide el <b>"+motivo+"</b>). Revisalo antes de volver a publicarlo."; box.classList.remove("hidden"); }
+  else box.classList.add("hidden");
+}
+// Re-chequea con lo que hay ahora en los campos (usa el título compuesto de la publicación).
+function chequearDupCampos(){
+  if(!$("f_isbn")) return;
+  chequearDupActual({ isbn:getCampo("isbn"), titulo:getCampo("title"), titulo_libro:getCampo("titulo_libro"), autor:getCampo("autor"), sku:getCampo("sku") });
+}
+
+/* ---------- Mostrar resultado ---------- */
+function num(x){ const n=parseInt(x); return isNaN(n)?null:n; }
+function fmt(n){ return "$"+Number(n).toLocaleString("es-AR"); }
+/* Medidas del paquete: si hay medida del libro, usa medida + margen (redondeada hacia arriba); si no, el default de config. */
+function paqDim(medida, margen, def){
+  const n=parseFloat(String(medida||"").replace(",","."));
+  return isNaN(n) ? (def||"") : String(Math.ceil(n)+margen);
+}
+function paqPeso(pesoG, def){
+  const g=parseFloat(String(pesoG||"").replace(",","."));
+  return isNaN(g) ? (def||"") : String(Math.round((g/1000+0.1)*1000)/1000);
+}
+function precioResuelto(d){
+  if(C.precioModo==="fijo") return C.precioFijo||"";
+  if(C.precioModo==="sugerir"){ const a=num(d.precio_sugerido_min), b=num(d.precio_sugerido_max);
+    if(a&&b) return Math.round((a+b)/2); return a||b||""; }
+  return "";
+}
+function armarTitulo(t,a){ let x=[t,a,C.etiqueta].filter(v=>v&&v.trim()).join(" ").replace(/\s+/g," ").trim();
+  if(x.length>60) x=x.slice(0,60).trim(); return x; }
+function setCampo(id,v){ const el=$("f_"+id); if(el){ el.value=(v==null?"":v); if(id==="isbn") el.dispatchEvent(new Event("input")); } }
+function getCampo(id){ const el=$("f_"+id); return el?String(el.value).trim():""; }
+
+/* Título en itálicas Unicode (solo letras/dígitos ASCII; los acentos quedan normales). */
+function aItalica(s){
+  return String(s).replace(/[A-Za-z0-9]/g, ch=>{
+    const c=ch.codePointAt(0);
+    if(ch==="h") return "ℎ";
+    if(c>=65&&c<=90) return String.fromCodePoint(0x1D434+(c-65));   // A-Z
+    if(c>=97&&c<=122) return String.fromCodePoint(0x1D44E+(c-97));  // a-z
+    if(c>=48&&c<=57) return String.fromCodePoint(0x1D7F6+(c-48));   // 0-9
+    return ch;
+  });
+}
+/* Descripción: 1) ficha bibliográfica, 2) texto de la IA, 3) datos de la librería. */
+function componerDescripcion(){
+  const g=getCampo;
+  const titulo=g("titulo_libro");
+  const tituloFmt = titulo ? (C.tituloItalica ? aItalica(titulo) : titulo) : "";
+  const biblio1=[g("autor"), tituloFmt].filter(Boolean).join(", ");
+  const biblio2=[g("ciudad"), g("editorial"), g("anio")].filter(Boolean).join(", ");
+  let biblio=[biblio1, biblio2].filter(Boolean).join(", ");
+  if(biblio) biblio+=".";
+  const extras=[];
+  if(g("paginas")) extras.push(g("paginas")+" páginas.");
+  if(g("estado")) extras.push(/[.!?]$/.test(g("estado")) ? g("estado") : g("estado")+".");
+  const bloque1=[biblio, extras.join(" ")].filter(Boolean).join(" ").trim();
+  const prosa=getCampo("resena");
+  const cierre=[ (C.retiroTexto||"").trim(), (C.libreria||"").trim() ].filter(Boolean).join("\n\n");
+  return [bloque1, prosa, cierre].filter(Boolean).join("\n\n");
+}
+/* Recupera la reseña (bloque del medio) de una descripción ya compuesta (para ítems viejos). */
+function extraerResena(desc){
+  if(!desc) return "";
+  let t=String(desc);
+  const cierre=[ (C.retiroTexto||"").trim(), (C.libreria||"").trim() ].filter(Boolean).join("\n\n");
+  if(cierre && t.indexOf(cierre)>=0) t=t.slice(0, t.indexOf(cierre));
+  const partes=t.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  return partes.length>=2 ? partes.slice(1).join("\n\n") : "";
+}
+
+function mostrarResultado(d){
+  actual=d;
+  editIdx=null; $("btnAgregar").textContent="➕ Agregar a la lista";
+  CAMPOS.forEach(c=>{
+    let v=d[c.id]||"";
+    if(c.id==="condicion" && !v) v=C.condicion||"Usado";
+    if(c.id==="sku" && !v) v=C.sku||"";
+    setCampo(c.id,v);
+  });
+  // Libro sin ISBN: los anteriores a 1970 casi nunca tienen uno, y ML lo exige.
+  // A esos les generamos un código interno único. Los demás quedan para decidir a mano.
+  const chkGen=$("chkIsbnGen");
+  if(chkGen) chkGen.checked=false;
+  if(!getCampo("isbn")){
+    const anio=parseInt(String(d.anio||"").replace(/\D/g,"").slice(0,4),10);
+    if(anio && anio<1970){
+      setCampo("isbn", generarCodigoInterno());
+      if(chkGen) chkGen.checked=true;
+    }
+  }else if(chkGen && esCodigoInterno(getCampo("isbn"))){
+    chkGen.checked=true;
+  }
+  $("f_resena").value = d.descripcion || "";   // reseña cruda de la IA (editable)
+  $("f_descripcion").value = componerDescripcion();
+  $("f_precio").value=precioResuelto(d);
+  regenerarTitulo();
+  // El precio lo define el usuario; los botones dan precios reales.
+  $("precioEst").innerHTML = "💰 El precio lo definís vos. Buscá precios reales de este libro en:";
+  pintarLinksPrecio();
+  const c=(d.confianza||"").toLowerCase();
+  $("confBadge").innerHTML = c ? `<span class="conf ${c}">confianza ${c}</span>` : "";
+  $("obs").textContent = d.observaciones ? ("⚠️ "+d.observaciones) : "";
+  chequearDupCampos();
+  $("cardResultado").classList.remove("hidden");
+  $("cardResultado").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function pintarLinksPrecio(){
+  const titulo=getCampo("titulo_libro"), autor=getCampo("autor"), anio=getCampo("anio");
+  const base=[titulo,autor].filter(Boolean).join(" ").trim();
+  if(!base){ $("precioLinks").innerHTML=""; return; }
+  // Iberlibro/eBay/Google se usan sobre todo para libros antiguos: sumamos el año si lo hay.
+  const conAnio=[titulo,autor,anio].filter(Boolean).join(" ").trim();
+  const e=encodeURIComponent(base), ey=encodeURIComponent(conAnio);
+  const sitios=[
+    ["🟡 Mercado Libre","https://listado.mercadolibre.com.ar/"+e],
+    ["📗 Iberlibro","https://www.iberlibro.com/servlet/SearchResults?kn="+ey],
+    ["🔵 eBay","https://www.ebay.com/sch/i.html?_nkw="+ey],
+    ["🔎 Google","https://www.google.com/search?q="+ey],
+  ];
+  $("precioLinks").innerHTML = sitios.map(s=>`<a class="btn sec sm" href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a>`).join("");
+}
+async function consultarPrecioReal(){
+  const box=$("precioRealBox");
+  const q=[getCampo("titulo_libro"),getCampo("autor")].filter(Boolean).join(" ").trim();
+  if(!q){ box.textContent="Cargá título/autor primero."; return; }
+  if(!C.proxyPrecios){ box.innerHTML='⚙️ Configurá el <b>Proxy de precios</b> en Configuración para ver el precio real de ML (ver instrucciones en el repo).'; return; }
+  box.innerHTML='<span class="spin"></span> Consultando Mercado Libre…';
+  try{
+    const sep=C.proxyPrecios.indexOf("?")>=0?"&":"?";
+    const r=await fetch(C.proxyPrecios+sep+"q="+encodeURIComponent(q));
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    if(!d || !d.count){ box.textContent="No encontré publicaciones de ese libro en ML."; return; }
+    const f=n=>"$"+Number(n).toLocaleString("es-AR");
+    box.innerHTML=`💲 <b>ML:</b> mediana <b>${f(d.median)}</b> · típico ${f(d.p25)}–${f(d.p75)} <span class="muted">(${d.count} publicaciones)</span> · <a href="#" id="usarPrecio">usar mediana</a>`;
+    $("usarPrecio").addEventListener("click",ev=>{ ev.preventDefault(); $("f_precio").value=d.median; setStatus("ok","Precio puesto: "+f(d.median)); });
+  }catch(e){ box.innerHTML="No pude consultar ("+escapeHTML(String(e.message||e))+"). Revisá la URL del proxy en Configuración."; }
+}
+$("btnPrecioReal").addEventListener("click",consultarPrecioReal);
+function regenerarTitulo(){
+  $("f_title").value=armarTitulo(getCampo("titulo_libro"),getCampo("autor"));
+  $("titleLen").textContent=$("f_title").value.length;
+  pintarLinksPrecio();
+}
+$("f_title").addEventListener("input",()=>{ $("titleLen").textContent=$("f_title").value.length; });
+$("btnRearmar").addEventListener("click",()=>{ $("f_descripcion").value=componerDescripcion(); });
+function ocultarResultado(){ $("cardResultado").classList.add("hidden"); actual=null; editIdx=null; $("btnAgregar").textContent="➕ Agregar a la lista"; }
+
+/* ---------- Copiar (delegado) ---------- */
+document.addEventListener("click", async (ev)=>{
+  const b=ev.target.closest(".copy"); if(!b) return;
+  const el=$(b.dataset.for); if(!el) return;
+  try{ await navigator.clipboard.writeText(el.value); }catch(e){ el.select&&el.select(); document.execCommand&&document.execCommand("copy"); }
+  const t=b.textContent; b.textContent="✓"; setTimeout(()=>b.textContent=t,900);
+});
+
+/* ---------- Agregar / editar / lista ---------- */
+// Toma una "foto" de todos los campos del editor (para guardar sin perder nada).
+function snapshotItem(){
+  const vals={};
+  CAMPOS.forEach(c=>vals[c.id]=getCampo(c.id));
+  vals.title=$("f_title").value.trim();
+  vals.precio=$("f_precio").value.trim();
+  vals.resena=$("f_resena").value;
+  vals.descripcion=$("f_descripcion").value;
+  return { vals, cfg:cfgSnapshot(),
+           confianza:(actual&&actual.confianza)||"", observaciones:(actual&&actual.observaciones)||"" };
+}
+// Construye la fila de 62 columnas a partir de un libro guardado.
+function filaFromItem(item){
+  const v=item.vals||{}; const cfg=item.cfg||{};
+  const g=id=>String(v[id]!=null?v[id]:"").trim();
+  const fila={};
+  COLUMNAS.forEach(c=>{ fila[c[0]] = c[1](g,cfg)||""; });
+  return fila;
+}
+// Carga un libro guardado en el editor para modificarlo.
+function editarItem(i){
+  const item=libros[i]; if(!item) return;
+  const v=item.vals||{};
+  CAMPOS.forEach(c=>setCampo(c.id, v[c.id]||""));
+  $("f_title").value=v.title||"";
+  $("f_precio").value=v.precio||"";
+  $("f_descripcion").value=v.descripcion||"";
+  // reseña: si el ítem la tiene guardada, usarla; si es un ítem viejo, recuperarla de la descripción.
+  $("f_resena").value = (v.resena!=null && v.resena!=="") ? v.resena
+                        : (item.prosa || extraerResena(v.descripcion||""));
+  actual={ confianza:item.confianza||"", observaciones:item.observaciones||"" };
+  editIdx=i;
+  colaLibros=[]; $("colaInfo").classList.add("hidden");
+  $("btnAgregar").textContent="💾 Guardar cambios";
+  $("titleLen").textContent=($("f_title").value||"").length;
+  const cf=(item.confianza||"").toLowerCase();
+  $("confBadge").innerHTML= cf?`<span class="conf ${cf}">confianza ${cf}</span>`:"";
+  $("obs").textContent=item.observaciones?("⚠️ "+item.observaciones):"";
+  $("precioEst").innerHTML="✏️ Editando el libro #"+(i+1)+". Buscá el precio real en:";
+  pintarLinksPrecio();
+  clearStatus();
+  $("cardResultado").classList.remove("hidden");
+  $("cardResultado").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("btnAgregar").addEventListener("click",async()=>{
+  if(!$("f_title").value.trim()){ setStatus("err","El título está vacío."); return; }
+  if(editIdx!=null){
+    const idx=editIdx;
+    libros[idx]=snapshotItem(); guardarLibros(); pintarLista();
+    editIdx=null; $("btnAgregar").textContent="➕ Agregar a la lista";
+    ocultarResultado(); clearStatus(); setStatus("ok","✔ Libro #"+(idx+1)+" actualizado.");
+    return;
+  }
+  libros.push(snapshotItem()); guardarLibros(); pintarLista();
+  clearStatus(); setStatus("ok","✔ Libro agregado a la lista ("+libros.length+").");
+  if(colaLibros.length) await mostrarSiguiente(); else ocultarResultado();
+});
+$("btnDescartar").addEventListener("click",async()=>{
+  clearStatus();
+  if(editIdx!=null){ ocultarResultado(); return; }   // cancela la edición
+  if(colaLibros.length) await mostrarSiguiente(); else ocultarResultado();
+});
+
+function pintarLista(){
+  $("conteo").textContent=libros.length;
+  const vacia=libros.length===0;
+  $("listaVacia").classList.toggle("hidden",!vacia);
+  $("tablaWrap").classList.toggle("hidden",vacia);
+  const tb=$("tbody"); tb.innerHTML="";
+  libros.forEach((item,i)=>{
+    const v=item.vals||{};
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${i+1}</td><td>${escapeHTML(v.title||"")}</td><td>${v.precio||"—"}</td>
+      <td style="white-space:nowrap"><button class="btn sec sm" data-a="edit" title="Editar">✏️</button> <button class="btn sec sm" data-a="del" title="Quitar">✕</button></td>`;
+    tr.querySelector('[data-a="edit"]').addEventListener("click",()=>editarItem(i));
+    tr.querySelector('[data-a="del"]').addEventListener("click",()=>{
+      if(editIdx===i) ocultarResultado();
+      libros.splice(i,1); guardarLibros(); pintarLista();
+    });
+    tb.appendChild(tr);
+  });
+  pintarValidacion();
+}
+function escapeHTML(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------- Validación de campos obligatorios de ML ----------
+   (Fotos es obligatorio pero se carga en ML, así que no lo marcamos como error). */
+const OBLIGATORIOS=["Título","Condición","ISBN","Stock","Precio [$]","Ancho (cm)","Alto (cm)",
+  "Profundidad (cm)","Peso físico (kg)","Cuotas","Forma de envío","Costo de envío","Retiro en persona",
+  "Título del libro","Autor","Editorial del libro"];
+function validarLibros(){
+  return libros.map((item,i)=>{
+    const f=filaFromItem(item);
+    const faltan=OBLIGATORIOS.filter(h=>!String(f[h]==null?"":f[h]).trim());
+    return {i, title:(item.vals&&item.vals.title)||"(sin título)", faltan};
+  }).filter(x=>x.faltan.length);
+}
+function pintarValidacion(){
+  const box=$("validacion"); if(!box) return;
+  if(!libros.length){ box.innerHTML=""; return; }
+  const sinFotos=libros.filter(it=>!String((it.vals&&it.vals.fotos)||"").trim()).length;
+  let html='<div class="small muted" style="margin-top:8px">📷 <b>Fotos:</b> pegá las URLs del Gestor de fotos de ML en el campo <b>Fotos</b> de cada libro y el Excel baja completo. '
+    + (sinFotos? ('<b>'+sinFotos+'</b> libro(s) todavía sin URLs de fotos.') : 'Todos tienen URLs de fotos. ✅')
+    + '</div>';
+  const probl=validarLibros();
+  if(probl.length){
+    html+='<div class="status err" style="margin-top:8px"><b>⚠️ '+probl.length+' libro(s) con datos obligatorios vacíos:</b><ul style="margin:6px 0 0;padding-left:18px">';
+    probl.forEach(p=>{ html+=`<li>#${p.i+1} ${escapeHTML(p.title.slice(0,40))} — falta: <b>${escapeHTML(p.faltan.join(", "))}</b> · <a href="#" data-edit="${p.i}">editar</a></li>`; });
+    html+='</ul></div>';
+  }else{
+    html+='<div class="status ok" style="margin-top:8px">✅ Todos los libros tienen los datos obligatorios (salvo las Fotos, que van en ML).</div>';
+  }
+  const malIsbn=libros.map((it,i)=>({i, isbn:(it.vals&&it.vals.isbn)||"", title:(it.vals&&it.vals.title)||"(sin título)"}))
+    .filter(x=>x.isbn.trim() && !isbnValido(x.isbn));
+  if(malIsbn.length){
+    html+='<div class="status err" style="margin-top:8px"><b>⚠️ '+malIsbn.length+' libro(s) con ISBN inválido</b> (ML los rechaza; revisá el dígito, o tildá "Libro sin ISBN" para generar un código):<ul style="margin:6px 0 0;padding-left:18px">';
+    malIsbn.forEach(p=>{ html+=`<li>#${p.i+1} ${escapeHTML(p.title.slice(0,40))} — <b>${escapeHTML(p.isbn)}</b> · <a href="#" data-edit="${p.i}">editar</a></li>`; });
+    html+='</ul></div>';
+  }
+  // ISBN repetido: ML asocia todos esos libros al mismo producto de catálogo
+  // y pisa la descripción propia con la del catálogo.
+  const porIsbn={};
+  libros.forEach((it,i)=>{
+    const is=((it.vals&&it.vals.isbn)||"").trim();
+    if(is){ (porIsbn[is]=porIsbn[is]||[]).push(i+1); }
+  });
+  const repes=Object.entries(porIsbn).filter(([,ids])=>ids.length>1);
+  if(repes.length){
+    html+='<div class="status err" style="margin-top:8px"><b>⚠️ ISBN repetido en varios libros.</b> '
+      + 'Mercado Libre va a asociarlos al mismo producto de su catálogo y <b>reemplazar tu descripción</b> por la del catálogo. '
+      + 'Dejá el ISBN vacío en los libros que no tengan uno propio.<ul style="margin:6px 0 0;padding-left:18px">';
+    repes.forEach(([is,ids])=>{ html+=`<li><b>${escapeHTML(is)}</b> — libros #${ids.join(", #")}</li>`; });
+    html+='</ul></div>';
+  }
+
+  box.innerHTML=html;
+  box.querySelectorAll('[data-edit]').forEach(a=>a.addEventListener('click',ev=>{ ev.preventDefault(); editarItem(parseInt(a.dataset.edit,10)); }));
+}
+$("btnVaciar").addEventListener("click",()=>{
+  if(!libros.length) return;
+  if(confirm("¿Vaciar la lista de "+libros.length+" libro(s)? Descargá el CSV antes si no lo hiciste.")){
+    libros=[]; guardarLibros(); pintarLista();
+  }
+});
+
+/* ---------- Excel .xlsx (columnas separadas; evita el lío de CSV en Excel en español) ---------- */
+const _enc=new TextEncoder();
+function _crc32(bytes){
+  if(!_crc32.t){ _crc32.t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?(0xEDB88320^(c>>>1)):(c>>>1); _crc32.t[n]=c>>>0; } }
+  const t=_crc32.t; let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc=(crc>>>8)^t[(crc^bytes[i])&0xFF];
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function _u32(n){ return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]; }
+function _u16(n){ return [n&255,(n>>>8)&255]; }
+function _zip(files){
+  const chunks=[], central=[]; let offset=0;
+  files.forEach(f=>{
+    const nameB=_enc.encode(f.name), crc=_crc32(f.bytes), len=f.bytes.length;
+    const lh=new Uint8Array([].concat(_u32(0x04034b50),_u16(20),_u16(0),_u16(0),_u16(0),_u16(0),_u32(crc),_u32(len),_u32(len),_u16(nameB.length),_u16(0)));
+    chunks.push(lh,nameB,f.bytes);
+    central.push(new Uint8Array([].concat(_u32(0x02014b50),_u16(20),_u16(20),_u16(0),_u16(0),_u16(0),_u16(0),_u32(crc),_u32(len),_u32(len),_u16(nameB.length),_u16(0),_u16(0),_u16(0),_u16(0),_u32(0),_u32(offset))), nameB);
+    offset += lh.length+nameB.length+len;
+  });
+  let cdSize=0; central.forEach(c=>cdSize+=c.length);
+  const eocd=new Uint8Array([].concat(_u32(0x06054b50),_u16(0),_u16(0),_u16(files.length),_u16(files.length),_u32(cdSize),_u32(offset),_u16(0)));
+  const all=chunks.concat(central,[eocd]); let total=0; all.forEach(a=>total+=a.length);
+  const out=new Uint8Array(total); let p=0; all.forEach(a=>{ out.set(a,p); p+=a.length; }); return out;
+}
+function _xmlEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function _colLetra(n){ let s=""; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
+function construirXLSX(headers, filas){
+  const todas=[headers].concat(filas);
+  const filasXml=todas.map((fila,ri)=>{
+    const celdas=fila.map((val,ci)=>`<c r="${_colLetra(ci)}${ri+1}" t="inlineStr"><is><t xml:space="preserve">${_xmlEsc(val)}</t></is></c>`).join("");
+    return `<row r="${ri+1}">${celdas}</row>`;
+  }).join("");
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${filasXml}</sheetData></worksheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Publicaciones" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  return _zip([
+    {name:"[Content_Types].xml", bytes:_enc.encode(ct)},
+    {name:"_rels/.rels", bytes:_enc.encode(rels)},
+    {name:"xl/workbook.xml", bytes:_enc.encode(wb)},
+    {name:"xl/_rels/workbook.xml.rels", bytes:_enc.encode(wbRels)},
+    {name:"xl/worksheets/sheet1.xml", bytes:_enc.encode(sheet)},
+  ]);
+}
+$("btnXLSX").addEventListener("click",()=>{
+  if(!libros.length){ setStatus("err","No hay libros para descargar."); return; }
+  const headers=COLUMNAS.map(c=>c[0]);
+  const filas=libros.map(item=>{ const f=filaFromItem(item); return headers.map(h=>f[h]==null?"":String(f[h])); });
+  const bytes=construirXLSX(headers, filas);
+  const blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="publicar_libros_ML_"+new Date().toISOString().slice(0,10)+".xlsx";
+  document.body.appendChild(a); a.click(); a.remove();
+  const probl=validarLibros();
+  if(probl.length){
+    setStatus("err","✅ Excel descargado, pero ⚠️ "+probl.length+" libro(s) tienen obligatorios vacíos (ver lista abajo). Completalos antes de subir a ML.");
+  }else{
+    setStatus("ok","✅ Excel descargado. Copiá las filas de datos y pegalas en tu planilla de ML (fila vacía bajo los títulos). Acordate de cargar las Fotos en ML.");
+  }
+});
+
+/* ---------- CSV (alternativo) ---------- */
+function csvCampo(v){ v=(v==null?"":String(v)); return /[",\n;]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+$("btnCSV").addEventListener("click",()=>{
+  if(!libros.length){ setStatus("err","No hay libros para descargar."); return; }
+  const headers=COLUMNAS.map(c=>c[0]);
+  const lineas=[headers.map(csvCampo).join(",")];
+  libros.forEach(item=>{ const f=filaFromItem(item); lineas.push(headers.map(h=>csvCampo(f[h])).join(",")); });
+  const blob=new Blob(["﻿"+lineas.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="publicar_libros_ML_"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ---------- Captura ---------- */
+$("btnCam").addEventListener("click",()=>$("fileCam").click());
+$("btnGal").addEventListener("click",()=>$("fileGal").click());
+async function sumarArchivos(files){ for(const f of files){ await agregarFoto(f); } }
+$("fileCam").addEventListener("change",async e=>{ await sumarArchivos([...e.target.files]); e.target.value=""; });
+$("fileGal").addEventListener("change",async e=>{ await sumarArchivos([...e.target.files]); e.target.value=""; });
+$("btnAnalizar").addEventListener("click",analizarFotos);
+$("btnManual").addEventListener("click",()=>{ const t=$("manualTexto").value.trim(); if(t) procesarManual(t); });
+$("manualTexto").addEventListener("keydown",e=>{ if(e.key==="Enter"){ const t=e.target.value.trim(); if(t) procesarManual(t); }});
+if(soportaScan) $("btnScan").classList.remove("hidden");
+$("btnScan").addEventListener("click",abrirScanner);
+$("btnScanCancel").addEventListener("click",cerrarScanner);
+
+/* ---------- Chequeo de duplicados ---------- */
+pubIndex=cargarPubIndex(); pintarDupResumen();
+$("btnImportDup").addEventListener("click",()=>{
+  if(typeof DecompressionStream==="undefined"){ $("dupStatus").innerHTML='<span style="color:#b3261e">Tu navegador no puede abrir el Excel (probá Chrome actualizado).</span>'; return; }
+  $("fileDup").click();
+});
+$("fileDup").addEventListener("change",async e=>{ if(e.target.files[0]) await importarPublicacionesML(e.target.files[0]); e.target.value=""; });
+$("btnVaciarDup").addEventListener("click",()=>{
+  localStorage.removeItem("mlPublicaciones"); pubIndex=null; pintarDupResumen(); $("dupStatus").textContent="Lista de publicaciones borrada.";
+});
+
+/* ---------- Compartir la app ---------- */
+const CANONICAL="https://estoesunagrabacion-wq.github.io/libros-mercadolibre/";
+const APP_URL = location.protocol.indexOf("http")===0 ? (location.origin+location.pathname) : CANONICAL;
+const MSG_APP = "📚 Cargá tus libros para Mercado Libre sacando una foto con esta app: "+APP_URL;
+$("appUrl").textContent = APP_URL;
+$("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data="+encodeURIComponent(APP_URL);
+$("qr").addEventListener("error",()=>$("qr").classList.add("hidden"));
+$("btnWhats").addEventListener("click",()=>{
+  if(navigator.share){
+    navigator.share({title:"Extractor de libros → Mercado Libre", text:"Cargá tus libros sacando una foto", url:APP_URL}).catch(()=>{});
+  }else{
+    window.open("https://wa.me/?text="+encodeURIComponent(MSG_APP),"_blank","noopener");
+  }
+});
+$("btnCopiarLink").addEventListener("click",async()=>{
+  try{ await navigator.clipboard.writeText(APP_URL); }catch(e){}
+  const b=$("btnCopiarLink"), t=b.textContent; b.textContent="✓ Copiado"; setTimeout(()=>b.textContent=t,1000);
+});
+
+/* ---------- Init ---------- */
+construirCampos(); pintarCfg(); pintarLista();
+</script>
+</body>
+</html>
