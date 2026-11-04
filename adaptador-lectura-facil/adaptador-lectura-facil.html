@@ -99,6 +99,11 @@ input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: 
 @media (prefers-reduced-motion: no-preference) { .speaking { transition: background .2s, box-shadow .2s; } }
 body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
 .welcome-steps { gap: 10px; font-size: 1rem; }
+.voice-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 45vh; overflow: auto; }
+.voice-item { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.voice-item small { color: var(--muted); }
+.voice-item.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.vtag { font-size: 0.72rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -419,6 +424,7 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <h2 class="card-title" id="h-out">Texto adaptado <span class="badge" id="badge">Ejemplo</span></h2>
         <div class="toolbar">
           <div class="size-ctl"><button class="btn small" id="btn-smaller" type="button" aria-label="Letra más pequeña">A−</button><button class="btn small" id="btn-bigger" type="button" aria-label="Letra más grande">A+</button></div>
+          <button class="btn small" id="btn-voice" type="button" aria-label="Elegir la voz de lectura">🗣 Voz</button>
           <button class="btn small" id="btn-read-all" type="button">🔊 Escuchar</button>
           <span class="tools-teacher" style="display:contents">
             <button class="btn small" id="btn-edit" type="button">✏️ Editar</button>
@@ -441,7 +447,26 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
   <button type="button" id="pl-next" aria-label="Párrafo siguiente">⏭</button>
   <label class="sr" for="pl-rate">Velocidad</label>
   <select id="pl-rate" title="Velocidad"><option value="0.75">Lenta</option><option value="0.9">Normal</option><option value="1.1">Rápida</option></select>
+  <button type="button" id="pl-voice" aria-label="Elegir voz">🗣 Voz</button>
   <button type="button" id="pl-stop" class="pl-stop">⏹ Detener</button>
+</div>
+
+<div class="sheet" id="sheet-voice" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-voice">
+    <h2 id="h-voice">Elegir la voz <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p class="hint" style="margin:0">Toca una voz para escucharla y elegirla. Las voces dependen del navegador y del dispositivo: cada uno tiene las suyas.</p>
+    <ul class="voice-list" id="voice-list"></ul>
+    <details class="hbox"><summary>¿Cómo consigo voces más naturales?</summary>
+      <ul class="steps">
+        <li><b>Microsoft Edge</b> (computadora) trae voces «Natural» muy buenas, incluso de Argentina (por ejemplo, Elena o Tomás). Es la mejor opción.</li>
+        <li><b>Chrome</b> tiene voces de Google, que suenan mejor que las del sistema. Funcionan con conexión a internet.</li>
+        <li><b>Chromebook:</b> en Configuración → Accesibilidad → Texto a voz → Configuración de voz, puedes ver e instalar más voces en español.</li>
+        <li><b>iPhone:</b> en Ajustes → Accesibilidad → Contenido leído → Voces → Español, descarga una voz «mejorada» o «premium».</li>
+        <li><b>Android:</b> en Ajustes → Accesibilidad → Salida de texto a voz, instala las voces de Google en español.</li>
+      </ul>
+      <p class="hint" style="margin:8px 0 0">Después de instalar una voz, recarga la página.</p>
+    </details>
+  </div>
 </div>
 
 <div class="sheet" id="sheet-install" hidden>
@@ -658,6 +683,37 @@ function pic(p) {
 }
 function pictoEl(p, key) { const e = pic(p); if (editing && key) return `<button type="button" class="picto picto-btn" data-pic="${key}" aria-label="Cambiar pictograma">${e ? `<span>${e}</span>` : "＋"}</button>`; return `<div class="picto" aria-hidden="true">${e ? `<span>${e}</span>` : ""}</div>`; }
 
+
+/* Voces: elegir la más natural disponible en este dispositivo */
+const REG = { AR: "Argentina", ES: "España", MX: "México", US: "Estados Unidos", "419": "Latinoamérica", CO: "Colombia", CL: "Chile", UY: "Uruguay", PE: "Perú", VE: "Venezuela" };
+function esVoices() { try { return speechSynthesis.getVoices().filter(v => /^es([-_]|$)/i.test(v.lang)); } catch (e) { return []; } }
+function voiceScore(v) {
+  let sc = 0;
+  if (/natural|neural|online|premium|enhanced|mejorad|wavenet/i.test(v.name)) sc += 6;
+  if (/google/i.test(v.name)) sc += 3;
+  if (/[-_]AR$/i.test(v.lang)) sc += 4; else if (/[-_](419|UY|CL|MX|US|CO)$/i.test(v.lang)) sc += 1;
+  if (v.localService === false) sc += 1;
+  if (/espeak|compact/i.test(v.name)) sc -= 5;
+  return sc;
+}
+function rankedVoices() { return esVoices().sort((a, b) => voiceScore(b) - voiceScore(a)); }
+function chosenVoice() { const vs = rankedVoices(), n = lsGet("lf-voice"); return vs.find(v => v.name === n) || vs[0] || null; }
+function voiceLabel(v) {
+  const reg = (v.lang.split(/[-_]/)[1] || "").toUpperCase();
+  const name = v.name.replace(/^(Microsoft|Apple)\s+/i, "").replace(/\s+Online\b/i, "").replace(/\s*-\s*Spanish.*$/i, "").replace(/\s*\(.*?\)\s*/g, " ").trim();
+  return { name: name || v.name, reg: REG[reg] || reg || "español", natural: /natural|neural|online|premium|enhanced|mejorad|wavenet/i.test(v.name) };
+}
+function fillVoices() {
+  const vs = rankedVoices(), cur = chosenVoice(), box = $("voice-list");
+  if (!vs.length) { box.innerHTML = '<li class="hint">Este navegador no tiene voces en español instaladas.</li>'; return; }
+  box.innerHTML = vs.map((v, k) => { const L = voiceLabel(v); return `<li><button type="button" class="voice-item${cur && cur.name === v.name ? " on" : ""}" data-voice="${esc(v.name)}"><span><b>${esc(L.name)}</b> <small>${esc(L.reg)}</small></span>${k === 0 ? '<span class="vtag">Recomendada</span>' : (L.natural ? '<span class="vtag">Natural</span>' : "")}</button></li>`; }).join("");
+}
+function tryVoice(v) {
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Hola. Así suena esta voz para leer los textos."); u.voice = v; u.lang = v.lang; u.rate = +(lsGet("lf-rate") || 0.9); speechSynthesis.speak(u); } catch (e) {}
+}
+if (canSpeak) { try { speechSynthesis.addEventListener("voiceschanged", () => { if (!$("sheet-voice").hidden) fillVoices(); }); } catch (e) {} }
+function openVoices() { if (spActive) stopSpeak(); fillVoices(); openSheet("sheet-voice"); }
+
 /* Lectura en voz alta: de a un párrafo, con Pausa / Seguir / Detener */
 let spQueue = [], spIdx = 0, spGen = 0, spActive = false, spPaused = false;
 function spClear() { document.querySelectorAll(".speaking").forEach(e => e.classList.remove("speaking")); }
@@ -684,9 +740,8 @@ function nextSpeak(gen) {
   $("pl-info").textContent = `${spIdx} de ${spQueue.length}`;
   try {
     const u = new SpeechSynthesisUtterance(plain(it.t));
-    u.lang = "es-ES"; u.rate = +(lsGet("lf-rate") || 0.9);
-    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
-    if (v) u.voice = v;
+    u.rate = +(lsGet("lf-rate") || 0.9);
+    const v = chosenVoice(); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "es-AR";
     u.onend = u.onerror = () => { if (gen === spGen) nextSpeak(gen); };
     speechSynthesis.speak(u);
   } catch (e) { stopSpeak(); }
@@ -757,7 +812,7 @@ function render(d, isExample, showPictos) {
   o.push(`</div>`);
   if (d.notas_docente?.length) o.push(`<div class="teacher"><h5>Para revisar (solo docente)</h5><ul>${d.notas_docente.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`);
   $("result").innerHTML = o.join("");
-  $("btn-read-all").hidden = !canSpeak;
+  $("btn-read-all").hidden = !canSpeak; $("btn-voice").hidden = !canSpeak;
 }
 
 /* Edición */
@@ -1167,6 +1222,13 @@ $("pl-pause").onclick = () => {
   else { speechSynthesis.pause(); spPaused = true; $("pl-pause").textContent = "▶ Seguir"; $("pl-pause").setAttribute("aria-label", "Seguir leyendo"); }
 };
 $("pl-stop").onclick = stopSpeak;
+$("pl-voice").onclick = openVoices;
+$("btn-voice").onclick = openVoices;
+$("voice-list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-voice]"); if (!b) return;
+  const v = esVoices().find(x => x.name === b.dataset.voice); if (!v) return;
+  lsSet("lf-voice", v.name); fillVoices(); tryVoice(v);
+});
 $("pl-prev").onclick = () => { if (!spActive) return; const g = ++spGen; spIdx = Math.max(0, spIdx - 2); spPaused = false; $("pl-pause").textContent = "⏸ Pausa"; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => nextSpeak(g), 60); };
 $("pl-next").onclick = () => { if (!spActive) return; const g = ++spGen; spPaused = false; $("pl-pause").textContent = "⏸ Pausa"; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => nextSpeak(g), 60); };
 $("pl-rate").value = lsGet("lf-rate") || "0.9";
