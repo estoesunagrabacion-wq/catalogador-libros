@@ -1133,6 +1133,23 @@ function setStatus(msg, kind) {
 }
 
 
+/* Separa el encabezado (título, autor, fuente) del cuerpo del texto, para no numerarlo como párrafo */
+function splitHeader(t) {
+  const lines = t.split(/\n/); const header = []; let k = 0;
+  while (k < lines.length) {
+    const l = lines[k].trim();
+    if (!l) { k++; continue; }
+    const words = l.split(/\s+/).length;
+    const looksHeader = words <= 10 && !/[.!?…:;,»"”]$/.test(l) && !/^[—–-]/.test(l);
+    const rest = lines.slice(k + 1).join(" ").trim();
+    const blankAfter = k + 1 < lines.length && !lines[k + 1].trim();
+    const nextLine = (lines.slice(k + 1).find(x => x.trim()) || "").trim();
+    const nextStartsNew = /^[\p{Lu}0-9«"“—–¿¡(]/u.test(nextLine);
+    if (!looksHeader || !rest || header.length >= 4 || !(blankAfter || nextStartsNew)) break;
+    header.push(l); k++;
+  }
+  return { header, body: lines.slice(k).join("\n").trim() };
+}
 function splitOriginal(t) {
   const blocks = t.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
   if (blocks.length >= 2) return blocks.map(b => b.replace(/\s*\n\s*/g, " "));
@@ -1149,9 +1166,10 @@ async function adapt() {
   setBusy(true);
   setStatus("Leyendo y adaptando el texto… suele tardar entre 20 segundos y 1 minuto.", "busy");
   try {
-    const paras = splitOriginal(texto);
+    const { header, body } = splitHeader(texto);
+    const paras = splitOriginal(body);
     o.numbered = o.guia && paras.length > 1;
-    const src = o.numbered ? paras.map((t, k) => `[${k + 1}] ${t}`).join("\n\n") : texto;
+    const src = o.numbered ? (header.length ? header.join("\n") + "\n\n" : "") + paras.map((t, k) => `[${k + 1}] ${t}`).join("\n\n") : texto;
     const d = await sample.json(buildPrompt(src, o), { signal: ctl.signal });
     if (!d || !Array.isArray(d.secciones) || !d.secciones.length) throw { code: "invalid_json" };
     d.tipo = o.tipo;
