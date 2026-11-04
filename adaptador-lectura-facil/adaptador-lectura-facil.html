@@ -121,6 +121,36 @@ body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
 body.student #btn-compare { display: none; }
 .auto-row { display: flex; gap: 10px; align-items: flex-start; margin: 0; cursor: pointer; }
 .auto-row input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.acts { display: grid; gap: 22px; margin-bottom: 16px; }
+.act { display: grid; gap: 10px; }
+.act-h { font-family: var(--f-head); font-size: 1.05em; margin: 0; display: flex; gap: 10px; align-items: center; }
+.act-pic { font-family: var(--f-emoji); }
+.act-c { margin: 0; font-style: italic; }
+.act-list { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; }
+.act-list li { display: list-item; }
+.act-list .vf { float: right; white-space: nowrap; font-weight: 700; margin-left: 12px; }
+.cbox { display: inline-block; width: 0.9em; height: 0.9em; border: 1.5px solid var(--ink); vertical-align: -0.1em; margin: 0 4px; border-radius: 2px; }
+.act-unir { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+.act-unir ol { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; }
+.act-unir ol:first-child li { text-align: left; }
+.dot { color: var(--ink); font-size: 0.7em; }
+.act-ord { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.act-ord li { display: flex; gap: 8px; align-items: baseline; }
+.act-opts { display: grid; gap: 4px; margin-top: 4px; }
+.act-banco { display: flex; flex-wrap: wrap; gap: 6px 14px; border: 1.5px dashed var(--line); border-radius: 6px; padding: 10px 12px; }
+.act-banco span { font-weight: 600; }
+.tscroll { overflow-x: auto; }
+.act-tab { border-collapse: collapse; width: 100%; font-size: 0.95em; }
+.act-tab th, .act-tab td { border: 1px solid var(--ink); padding: 8px; min-width: 6em; height: 2.2em; text-align: left; vertical-align: top; }
+.act-tab th { background: var(--surface-2); }
+.act-linea { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 3px solid var(--accent); display: grid; gap: 10px; }
+.act-linea li { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+.act-linea li::before { content: ""; position: absolute; left: -25px; top: 0.45em; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); }
+.blank { display: inline-block; min-width: 12em; border-bottom: 1.5px solid var(--line); height: 1.2em; }
+.wline { border-bottom: 1px solid var(--line); height: 1.8em; }
+.act-tools { font-size: 0.85rem; font-family: var(--f-ui); display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; }
+.act-tools summary { cursor: pointer; color: var(--accent); }
+.acts-gen { border-top: 1px dashed var(--line); padding-top: 14px; font-family: var(--f-ui); font-size: 0.95rem; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -554,6 +584,8 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <li>Para corregir algo, pulsa <b>✏️ Editar</b>, toca el texto y cámbialo. Tocando un pictograma puedes elegir otro. Al terminar, pulsa <b>✓ Listo</b>.</li>
         <li>Si falta una palabra en el glosario, escríbela y pulsa <b>+ Agregar al glosario</b>.</li>
         <li>Con <b>⇆ Comparar</b> ves cada párrafo del original al lado de su versión adaptada; los párrafos que quedaron sin adaptación se marcan en rojo.</li>
+        <li>Debajo del texto, en <b>Actividades</b>, elige tipos de ejercicios según la materia (clases de palabras, verbos, línea de tiempo, causas y consecuencias, etc.) o escribe un pedido específico. Se imprimen al final del PDF; las respuestas solo las ve la docente.</li>
+        <li>El PDF lleva una <b>portada</b> con título, autor, pictograma y renglones para el nombre; se puede quitar en «Imprimir».</li>
         <li>Los textos largos se adaptan solos <b>por partes</b>; verás el avance («parte 2 de 4»).</li>
         <li>Con <b>Guía del original</b> activada, cada parte muestra de qué párrafo del texto original sale y sus primeras palabras («Original ¶3: …»), para seguir la lectura junto con la clase.</li>
         <li>Usa <b>Vista alumna</b> para que lo lea en pantalla, <b>📄 Imprimir</b> para el PDF en A5 o en cuadernillo, o <b>Descargar Word</b> para editarlo.</li>
@@ -643,6 +675,11 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <label class="field-label" for="pr-sobrantes">Páginas que sobran (cuadernillo)</label>
         <select id="pr-sobrantes"><option value="notas">Para escribir (con renglones)</option><option value="blanco">En blanco</option></select>
       </div>
+    </div>
+    <label class="auto-row"><input type="checkbox" id="pr-portada" checked> <span><b>Portada</b><br><span class="hint">Con título, autor, un pictograma grande y renglones para el nombre y el curso.</span></span></label>
+    <div class="two" id="pr-cover-fields">
+      <div><label class="field-label" for="pr-alumno">Nombre en la portada <span class="hint">(opcional)</span></label><input type="text" id="pr-alumno" placeholder="Vacío: queda el renglón para escribir"></div>
+      <div><label class="field-label" for="pr-escuela">Escuela <span class="hint">(opcional)</span></label><input type="text" id="pr-escuela" placeholder="Ej.: Escuela N.º 5 D.E. 3"></div>
     </div>
     <label class="auto-row"><input type="checkbox" id="pr-auto" checked> <span><b>Ajuste automático del diseño</b><br><span class="hint">Prueba tamaños de letra entre 11 y 18 pt, cerca del que elegiste, para que no queden títulos sueltos, líneas solas ni páginas casi vacías o en blanco.</span></span></label>
     <div class="two" style="display:none">
@@ -837,6 +874,7 @@ function render(d, isExample, showPictos) {
       `<div class="q"><p>${qi + 1}. ${esc(q.pregunta)}</p><div class="opts">${(q.opciones || []).map((op, oi) =>
         `<button type="button" data-q="${qi}" data-o="${oi}">${esc(op)}</button>`).join("")}</div><div class="feedback" aria-live="polite"></div></div>`).join("")}</div></div>`);
   }
+  o.push(actsSection(d));
   o.push(`</div>`);
   if (d.notas_docente?.length) o.push(`<div class="teacher"><h5>Para revisar (solo docente)</h5><ul>${d.notas_docente.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`);
   $("result").innerHTML = o.join("");
@@ -946,6 +984,7 @@ function fullText(d) {
   if (d.glosario?.length) { L.push("Palabras importantes"); d.glosario.forEach(g => L.push(`• ${g.palabra}: ${g.significado}${g.ejemplo ? " Ejemplo: " + g.ejemplo : ""}`)); L.push(""); }
   if (d.ideas_clave?.length) { L.push("Lo más importante"); d.ideas_clave.forEach(x => L.push("• " + plain(txt(x)))); L.push(""); }
   if (d.preguntas?.length) { L.push("¿Lo entendiste?"); d.preguntas.forEach((q, i) => { L.push(`${i + 1}. ${q.pregunta}`); (q.opciones || []).forEach((op, j) => L.push(`   ${"abcde"[j] || "-"}) ${op}`)); }); }
+  const at = actsText(d); if (at) L.push("", at);
   return L.join("\n");
 }
 
@@ -961,6 +1000,7 @@ function docHtml(d) {
   if (d.glosario?.length) h += `<h2>Palabras importantes</h2><table>${d.glosario.map(g => `<tr>${P(g)}<td><mark>${esc(g.palabra)}</mark>: ${esc(g.significado)}${g.ejemplo ? `<br><i>Ejemplo: ${esc(g.ejemplo)}</i>` : ""}</td></tr>`).join("")}</table>`;
   if (d.ideas_clave?.length) h += `<h2>Lo más importante</h2><ul>${d.ideas_clave.map(x => `<li>${rich(txt(x))}</li>`).join("")}</ul>`;
   if (d.preguntas?.length) h += `<h2>¿Lo entendiste?</h2>${d.preguntas.map((q, i) => `<p><b>${i + 1}. ${esc(q.pregunta)}</b><br>${(q.opciones || []).map(op => `☐ ${esc(op)}`).join("<br>")}</p>`).join("")}`;
+  h += actsDocHtml(d);
   return h + `</body></html>`;
 }
 
@@ -1266,6 +1306,7 @@ async function adapt() {
 function finishAdapt(d, o, header, paras, warning) {
   d.tipo = o.tipo;
   d.show_refs = o.guia;
+  d.materia = o.materia; d.curso = grado(o.curso)[1];
   if (paras.length > 1) {
     d.orig_refs = Object.fromEntries(paras.map((t, k) => [k + 1, t.split(/\s+/).slice(0, 6).join(" ").replace(/[,;:.]$/, "")]));
     d.orig_paras = paras; d.orig_header = header;
@@ -1485,6 +1526,178 @@ $("btn-import").onclick = () => {
   } catch (e) { st.textContent = "Ese texto no es válido. Cópialo de nuevo desde «Copiar mis datos»."; }
 };
 
+/* ===== Actividades a partir del texto adaptado ===== */
+const ACT_OPC = {
+  vf: "Verdadero o falso", unir: "Unir palabras con su significado", completar: "Completar frases", ordenar: "Ordenar los hechos", opciones: "Preguntas de opción múltiple",
+  clases: "Clases de palabras (sustantivos, adjetivos, verbos)", verbos: "Verbos: tiempos y personas", personaje: "Describir a un personaje", narrador: "Narrador y personajes", sinonimos: "Sinónimos y antónimos", final: "Imaginar otro final",
+  linea: "Línea de tiempo", causas: "Causas y consecuencias", actores: "Quiénes participaron", lugares: "Lugares y ubicación", tabla: "Cuadro comparativo", clasificar: "Clasificar",
+  proceso: "Etapas de un proceso", experimento: "Experiencia sencilla", datos: "Identificar datos y pregunta", similares: "Problemas parecidos", pasos: "Resolver paso a paso",
+  dilema: "Pensar un dilema", opinion: "Dar una opinión", derechos: "Derechos y responsabilidades"
+};
+const ACT_GRUPOS = {
+  lengua: ["clases", "verbos", "ordenar", "vf", "unir", "completar", "personaje", "narrador", "sinonimos", "final"],
+  historia: ["linea", "causas", "ordenar", "actores", "vf", "unir", "completar"],
+  geografia: ["clasificar", "tabla", "lugares", "vf", "unir", "completar"],
+  ciencias: ["proceso", "clasificar", "tabla", "vf", "unir", "completar", "experimento"],
+  mate: ["datos", "pasos", "similares", "completar", "vf"],
+  etica: ["dilema", "opinion", "derechos", "vf", "unir"],
+  general: ["vf", "unir", "completar", "ordenar", "opciones", "clasificar"]
+};
+function actGrupo(materia) {
+  const mm = String(materia || "");
+  if (/Lengua|Literatura|Prácticas del Lenguaje/.test(mm)) return "lengua";
+  if (/Historia|Ciencias Sociales/.test(mm)) return "historia";
+  if (/Geografía|Economía/.test(mm)) return "geografia";
+  if (/Biología|Física|Química|Fisicoquímica|Ciencias Naturales|Tecnológica/.test(mm)) return "ciencias";
+  if (/Matemática/.test(mm)) return "mate";
+  if (/Ética|ESI|Filosofía/.test(mm)) return "etica";
+  return "general";
+}
+function hashStr(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function seededShuffle(arr, seed) {
+  const a = arr.slice(); let x = seed || 1;
+  const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 100000) / 100000; };
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  if (a.length > 2 && a.every((v, i) => v === arr[i])) a.push(a.shift());
+  return a;
+}
+const blankify = (t) => String(t || "").replace(/_{2,}|…{2,}|\.{4,}/g, "__________");
+/* Prepara cada actividad en un formato común para pantalla, PDF y Word */
+function actView(a, n) {
+  const seed = hashStr((a.titulo || "") + n);
+  const v = { n, titulo: a.titulo || "Actividad", consigna: a.consigna || "", picto: a.picto || "", formato: a.formato, solucion: a.solucion || "" };
+  switch (a.formato) {
+    case "vf": v.rows = (a.items || []).map(it => ({ t: it.texto || String(it) })); break;
+    case "unir": { const pares = (a.pares || []).filter(p => p && p.a && p.b); v.izq = pares.map(p => p.a); v.der = seededShuffle(pares.map(p => p.b), seed); break; }
+    case "ordenar": v.rows = seededShuffle((a.items || []).map(x => typeof x === "string" ? x : (x.texto || "")), seed); break;
+    case "completar": v.rows = (a.items || []).map(it => blankify(it.texto || it)); v.banco = a.banco === false ? null : seededShuffle((a.items || []).map(it => it.respuesta).filter(Boolean), seed); break;
+    case "opciones": v.qs = (a.items || []).map(q => ({ p: q.pregunta || "", o: q.opciones || [] })); break;
+    case "clasificar": { v.cols = a.categorias || []; const pal = (a.palabras || []).map(p => typeof p === "string" ? p : p.p).filter(Boolean); v.banco = seededShuffle(pal, seed); v.nfilas = Math.max(2, Math.ceil(pal.length / Math.max(1, v.cols.length)) + 1); break; }
+    case "linea_tiempo": { const ev = a.eventos || []; v.eventos = ev.map(e => ({ f: e.fecha || "", h: e.completar ? "" : (e.hecho || "") })); const hid = ev.filter(e => e.completar).map(e => e.hecho); v.banco = hid.length ? seededShuffle(hid, seed) : null; break; }
+    case "tabla": v.cols = a.columnas || []; v.filas = (a.filas || []).map(r => (Array.isArray(r) ? r : []).map(c => String(c ?? ""))); break;
+    default: v.formato = "abierta"; v.rows = (a.items || [a.consigna]).map(x => typeof x === "string" ? x : (x.texto || "")); v.lineas = Math.min(8, Math.max(1, parseInt(a.lineas, 10) || 3));
+  }
+  return v;
+}
+const LETRAS = "abcdefghijklmnopqrstuvwxyz";
+function actHtml(v, idx) {
+  const box = '<span class="cbox"></span>';
+  let body = "";
+  const banco = (arr) => arr && arr.length ? `<div class="act-banco">${arr.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : "";
+  switch (v.formato) {
+    case "vf": body = `<ol class="act-list">${v.rows.map(r => `<li><span>${esc(r.t)}</span><span class="vf">V ${box} F ${box}</span></li>`).join("")}</ol>`; break;
+    case "unir": body = `<div class="act-unir"><ol>${v.izq.map(x => `<li>${esc(x)} <span class="dot">●</span></li>`).join("")}</ol><ol type="a">${v.der.map(x => `<li><span class="dot">●</span> ${esc(x)}</li>`).join("")}</ol></div>`; break;
+    case "ordenar": body = `<ul class="act-ord">${v.rows.map(x => `<li>${box}<span>${esc(x)}</span></li>`).join("")}</ul>`; break;
+    case "completar": body = banco(v.banco) + `<ol class="act-list">${v.rows.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`; break;
+    case "opciones": body = `<ol class="act-list">${v.qs.map(q => `<li><b>${esc(q.p)}</b><div class="act-opts">${q.o.map(o => `<div>${box} ${esc(o)}</div>`).join("")}</div></li>`).join("")}</ol>`; break;
+    case "clasificar": body = banco(v.banco) + `<div class="tscroll"><table class="act-tab"><thead><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${Array.from({ length: v.nfilas }, () => `<tr>${v.cols.map(() => "<td></td>").join("")}</tr>`).join("")}</tbody></table></div>`; break;
+    case "linea_tiempo": body = banco(v.banco) + `<ol class="act-linea">${v.eventos.map(e => `<li><b>${esc(e.f)}</b><span>${e.h ? esc(e.h) : '<span class="blank"></span>'}</span></li>`).join("")}</ol>`; break;
+    case "tabla": body = `<div class="tscroll"><table class="act-tab"><thead><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${v.filas.map(r => `<tr>${v.cols.map((_, k) => `<td>${esc(r[k] || "")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; break;
+    default: body = `<ol class="act-list">${v.rows.map(x => `<li>${esc(x)}${'<div class="wline"></div>'.repeat(v.lineas)}</li>`).join("")}</ol>`;
+  }
+  return `<div class="act"><h5 class="act-h">${v.picto ? `<span class="act-pic">${esc(pic({ picto: v.picto }))}</span>` : ""}Actividad ${v.n}: ${esc(v.titulo)}</h5>${v.consigna ? `<p class="act-c">${esc(v.consigna)}</p>` : ""}${body}
+    <div class="tools-teacher act-tools">${v.solucion ? `<details><summary>Ver respuestas</summary><p>${esc(v.solucion)}</p></details>` : ""}<button type="button" class="gl-del" data-delact="${idx}">Quitar esta actividad</button></div></div>`;
+}
+function actsSection(d) {
+  const acts = d.actividades || [];
+  const grupo = actGrupo(d.materia), sug = ACT_GRUPOS[grupo];
+  const list = acts.length ? `<div class="acts">${acts.map((a, k) => actHtml(actView(a, k + 1), k)).join("")}</div>` : "";
+  const gen = `<div class="acts-gen tools-teacher">
+    <p class="hint" style="margin:0 0 8px">Elige qué tipo de actividades quieres, a partir del texto adaptado${d.materia ? ` (${esc(d.materia)})` : ""}. Se imprimen al final del PDF.</p>
+    <div class="chips" role="group" aria-label="Tipos de actividad">${sug.map((k, i) => `<input type="checkbox" id="act-${k}" value="${k}"${i < 2 ? " checked" : ""}><label for="act-${k}">${ACT_OPC[k]}</label>`).join("")}</div>
+    <label class="field-label" for="act-pedido" style="margin-top:12px">Pedido específico (opcional)</label>
+    <input type="text" id="act-pedido" placeholder="Ej.: buscar los verbos en pasado y escribir su infinitivo">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn small" type="button" id="btn-acts">Crear actividades</button><button class="btn small" type="button" id="btn-acts-stop" hidden>Detener</button></div>
+    <p class="hint" id="act-status" role="status" aria-live="polite" style="margin:6px 0 0"></p></div>`;
+  return `<div class="box${acts.length ? "" : " tools-teacher"}"><h4>Actividades</h4>${list}${gen}</div>`;
+}
+let actCtl = null;
+async function crearActividades() {
+  const st = $("act-status");
+  if (!sample) { st.textContent = "Para crear actividades, abre la aplicación desde su enlace con la sesión de Claude iniciada."; return; }
+  const tipos = [...document.querySelectorAll('.acts-gen input[type=checkbox]:checked')].map(x => ACT_OPC[x.value]);
+  const pedido = $("act-pedido").value.trim();
+  if (!tipos.length && !pedido) { st.textContent = "Elige al menos un tipo de actividad o escribe un pedido."; return; }
+  const o = opts(), g = grado(o.curso), l = grado(o.lee);
+  const texto = adaptedPlain(current.secciones || []).slice(0, 30000);
+  const glos = (current.glosario || []).map(x => x.palabra).join(", ");
+  const prev = (current.actividades || []).map(a => a.titulo).join("; ");
+  const prompt = `Eres docente de educación inclusiva en la Ciudad de Buenos Aires. Crea actividades para después de leer el TEXTO ADAPTADO de abajo.
+
+ESTUDIANTE: cursa ${g[1]} (${g[2]} años) y lee como en ${l[1]}.${o.notas ? " Notas de la docente: " + o.notas : ""}
+MATERIA: ${current.materia || o.materia}.
+TIPOS PEDIDOS: ${tipos.length ? tipos.join("; ") : "(ninguno en particular)"}.${pedido ? `\nPEDIDO ESPECÍFICO DE LA DOCENTE: ${pedido}` : ""}${prev ? `\nYa existen estas actividades (no las repitas): ${prev}.` : ""}
+
+REGLAS:
+- Una actividad por cada tipo pedido (y una más para el pedido específico, si lo hay). Entre 4 y 8 ítems cada una.
+- Basadas SOLO en el texto adaptado: palabras, oraciones, hechos y personajes que aparecen en él.
+- Consignas cortas y claras, en español de la Argentina con voseo ("Leé", "Uní", "Marcá", "Escribí"). Una sola tarea por consigna.
+- Tono adecuado a la edad (${g[2]} años), nunca infantil. Vocabulario al nivel de lectura del estudiante.
+- Para clases de palabras o verbos, usa ejemplos tomados del texto y pide marcarlos, clasificarlos o completarlos.
+- En "solucion" escribe las respuestas correctas, breves, para la docente.
+- "picto": UN emoji que represente la actividad.
+
+FORMATOS (elige el que mejor sirva a cada actividad; respeta exactamente la forma):
+- "vf": {"items": [{"texto": "afirmación", "v": true}]}
+- "unir": {"pares": [{"a": "palabra o hecho", "b": "significado o pareja"}]}
+- "ordenar": {"items": ["hechos EN EL ORDEN CORRECTO"]}
+- "completar": {"items": [{"texto": "frase con ___ en el lugar de la palabra que falta", "respuesta": "palabra"}], "banco": true}
+- "opciones": {"items": [{"pregunta": "", "opciones": ["", "", ""], "correcta": 0}]}
+- "clasificar": {"categorias": ["Sustantivos", "Verbos"], "palabras": [{"p": "palabra del texto", "c": 0}]}
+- "linea_tiempo": {"eventos": [{"fecha": "año o momento", "hecho": "", "completar": false}]} (marca 2 o 3 eventos con "completar": true para que los escriba el estudiante)
+- "tabla": {"columnas": ["", ""], "filas": [["dato", ""]]} (celdas vacías "" para completar)
+- "abierta": {"items": ["pregunta o consigna"], "lineas": 3}
+
+RESPONDE SOLO con JSON: {"actividades": [{"titulo": "corto", "consigna": "", "picto": "emoji", "formato": "uno de los anteriores", ...campos del formato..., "solucion": ""}]}
+${glos ? `\nPalabras del glosario: ${glos}.` : ""}
+TEXTO ADAPTADO:
+"""
+${texto}
+"""`;
+  actCtl = new AbortController();
+  $("btn-acts").disabled = true; $("btn-acts-stop").hidden = false;
+  st.innerHTML = '<span class="spinner" aria-hidden="true" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Creando actividades… suele tardar entre 20 segundos y 1 minuto.';
+  try {
+    const r = await sample.json(prompt, { signal: actCtl.signal });
+    const nuevas = (r?.actividades || []).filter(a => a && a.formato);
+    if (!nuevas.length) throw { code: "invalid_json" };
+    current.actividades = (current.actividades || []).concat(nuevas);
+    render(current, false, currentShowPictos); updateHist();
+    $("act-status").textContent = `Se ${nuevas.length === 1 ? "agregó 1 actividad" : `agregaron ${nuevas.length} actividades`}. Revísalas antes de imprimir.`;
+    document.querySelectorAll(".act")[current.actividades.length - nuevas.length]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    const s2 = $("act-status");
+    if (s2) s2.textContent = e?.code === "cancelled" ? "Se detuvo." : (ERRORS[e?.code] || "No se pudieron crear las actividades. Vuelve a intentarlo.");
+  } finally { const b = $("btn-acts"); if (b) b.disabled = false; const s = $("btn-acts-stop"); if (s) s.hidden = true; }
+}
+$("result").addEventListener("click", (e) => {
+  if (e.target.closest("#btn-acts")) { crearActividades(); return; }
+  if (e.target.closest("#btn-acts-stop")) { actCtl?.abort(); return; }
+  const del = e.target.closest("[data-delact]");
+  if (del) { current.actividades.splice(+del.dataset.delact, 1); render(current, $("badge").hidden === false, currentShowPictos); updateHist(); }
+});
+function actsText(d) {
+  return (d.actividades || []).map((a, k) => { const v = actView(a, k + 1); const L = [`Actividad ${v.n}: ${v.titulo}`, v.consigna];
+    if (v.banco) L.push("Palabras: " + v.banco.join(" · "));
+    if (v.rows) v.rows.forEach((r, i) => L.push(`${i + 1}. ${r.t || r}${v.formato === "vf" ? "   V ☐  F ☐" : ""}`));
+    if (v.izq) { v.izq.forEach((x, i) => L.push(`${i + 1}. ${x}`)); v.der.forEach((x, i) => L.push(`${LETRAS[i]}) ${x}`)); }
+    if (v.qs) v.qs.forEach((q, i) => { L.push(`${i + 1}. ${q.p}`); q.o.forEach(o => L.push(`   ☐ ${o}`)); });
+    if (v.eventos) v.eventos.forEach(e => L.push(`${e.f}: ${e.h || "__________"}`));
+    if (v.cols) L.push(v.cols.join(" | "));
+    if (v.filas) v.filas.forEach(r => L.push(v.cols.map((_, i) => r[i] || "____").join(" | ")));
+    return L.filter(Boolean).join("\n"); }).join("\n\n");
+}
+function actsDocHtml(d) {
+  return (d.actividades || []).map((a, k) => { const v = actView(a, k + 1); let h = `<h2>Actividad ${v.n}: ${esc(v.titulo)}</h2>${v.consigna ? `<p><b>${esc(v.consigna)}</b></p>` : ""}`;
+    if (v.banco) h += `<p style="border:1pt solid #999;padding:6pt">${v.banco.map(esc).join(" &nbsp;·&nbsp; ")}</p>`;
+    if (v.rows) h += `<ol>${v.rows.map(r => `<li>${esc(r.t || r)}${v.formato === "vf" ? " &nbsp; V ☐ &nbsp; F ☐" : ""}${v.formato === "abierta" ? "<br>" + "_".repeat(60) : ""}</li>`).join("")}</ol>`;
+    if (v.izq) h += `<table><tr><td valign="top"><ol>${v.izq.map(x => `<li>${esc(x)} ●</li>`).join("")}</ol></td><td valign="top"><ol type="a">${v.der.map(x => `<li>● ${esc(x)}</li>`).join("")}</ol></td></tr></table>`;
+    if (v.qs) h += `<ol>${v.qs.map(q => `<li>${esc(q.p)}<br>${q.o.map(o => `☐ ${esc(o)}`).join("<br>")}</li>`).join("")}</ol>`;
+    if (v.eventos) h += `<ul>${v.eventos.map(e => `<li><b>${esc(e.f)}</b>: ${e.h ? esc(e.h) : "____________________"}</li>`).join("")}</ul>`;
+    if (v.cols) { const rows = v.filas || Array.from({ length: v.nfilas }, () => []); h += `<table border="1" cellpadding="6" style="border-collapse:collapse"><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${rows.map(r => `<tr>${v.cols.map((_, i) => `<td>${esc(r[i] || "")}&nbsp;</td>`).join("")}</tr>`).join("")}</table>`; }
+    return h; }).join("");
+}
+
 /* ---------- A5 para imprimir ---------- */
 const A5 = { W: 148, H: 210, mT: 14, mB: 18, mL: 14, mR: 14 };
 const PT = 0.3528;
@@ -1669,7 +1882,8 @@ function layoutA5(d, cfg, S) {
   const blocks = [];
   const tb = textBlock([{ t: d.titulo || "", b: 1 }], colW, bodyPt + 8, FUI, C.ink, 1.2);
   const au = d.autor ? textBlock([{ t: d.autor, i: 1 }], colW, 10.5, FREAD, C.muted, 1.4) : null;
-  blocks.push({ h: tb.h + (au ? au.h + m(1) : 0), notes: [], gap: m(5), draw(ctx, x, y) { tb.draw(ctx, x, y); if (au) au.draw(ctx, x, y + tb.h + m(1)); } });
+  if (!cfg.portada) blocks.push({ h: tb.h + (au ? au.h + m(1) : 0), notes: [], gap: m(5), draw(ctx, x, y) { tb.draw(ctx, x, y); if (au) au.draw(ctx, x, y + tb.h + m(1)); } });
+  const coverPic = pic(d.antes_de_leer) || pic((d.secciones?.[0]?.parrafos || [])[0]) || "📖";
   if (d.antes_de_leer && txt(d.antes_de_leer)) { const n = []; blocks.push(Object.assign(boxBlock("Antes de leer", segsOf(txt(d.antes_de_leer), n), pic(d.antes_de_leer)), { notes: n })); }
   if (d.en_una_frase && txt(d.en_una_frase)) { const n = []; blocks.push(Object.assign(boxBlock("En una frase", segsOf(txt(d.en_una_frase), n), pic(d.en_una_frase)), { notes: n })); }
   if (d.personajes?.length) {
@@ -1697,6 +1911,78 @@ function layoutA5(d, cfg, S) {
     rest.forEach(i => { const g = gl[i]; blocks.push(rowBlock([{ t: g.palabra, b: 1, m: 1 }, { t: ": " + g.significado }, ...(g.ejemplo ? [{ t: " Ejemplo: " + g.ejemplo, i: 1, c: C.muted }] : [])], pic(g), bodyPt - 1)); });
   }
   if (d.preguntas?.length) { blocks.push(headBlock("¿Lo entendiste?")); d.preguntas.forEach((q, k) => blocks.push(questionBlock(q, k))); }
+  /* Actividades (PDF) */
+  const sq = (ctx, x, y, s) => { ctx.strokeStyle = C.ink; ctx.lineWidth = m(0.3); ctx.strokeRect(x, y, s, s); };
+  const lbl = (ctx, t, x, y, pt = bodyPt - 1) => { ctx.font = `700 ${px(pt)}px ${FREAD}`; ctx.fillStyle = C.ink; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.fillText(t, x, y); };
+  function itemBlock(segs, opt = {}) {
+    const boxW = opt.box ? m(7) : 0, rightW = opt.vf ? m(22) : 0, bs = m(4.2);
+    const t = textBlock(segs, colW - boxW - rightW, bodyPt, FREAD, C.ink, 1.45);
+    return { h: Math.max(t.h, m(5)), notes: [], gap: m(2.2), draw(ctx, x, y) {
+      const yy = y + (t.lh - bs) / 2;
+      if (opt.box) sq(ctx, x, yy, bs);
+      t.draw(ctx, x + boxW, y);
+      if (opt.vf) { const rx = x + colW - rightW + m(2); lbl(ctx, "V", rx, yy + bs * 0.85); sq(ctx, rx + m(4), yy, bs); lbl(ctx, "F", rx + m(11), yy + bs * 0.85); sq(ctx, rx + m(15), yy, bs); }
+    } };
+  }
+  function linesBlock(n) { const sp = m(8.5); return { h: n * sp, notes: [], gap: m(3), draw(ctx, x, y) { ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25); for (let i = 1; i <= n; i++) { ctx.beginPath(); ctx.moveTo(x + m(6), y + i * sp - m(1)); ctx.lineTo(x + colW, y + i * sp - m(1)); ctx.stroke(); } } }; }
+  function bancoBlock(words) {
+    const pad = m(3);
+    const lab = textBlock([{ t: "PALABRAS PARA USAR", b: 1 }], colW - 2 * pad, 8, FUI, C.acc, 1.3);
+    const tb = textBlock([{ t: words.join("   ·   ") }], colW - 2 * pad, bodyPt - 1, FREAD, C.ink, 1.5);
+    const h = lab.h + tb.h + 2 * pad + m(1);
+    return { h, notes: [], gap: m(3), keep: true, draw(ctx, x, y) {
+      ctx.strokeStyle = C.line; ctx.lineWidth = m(0.35); ctx.setLineDash([m(1.2), m(1)]); ctx.strokeRect(x, y, colW, h); ctx.setLineDash([]);
+      lab.draw(ctx, x + pad, y + pad); tb.draw(ctx, x + pad, y + pad + lab.h + m(1));
+    } };
+  }
+  function unirBlock(a, b, i) {
+    const half = (colW - m(14)) / 2;
+    const L = textBlock([{ t: `${i + 1}. `, b: 1 }, { t: a }], half, bodyPt - 0.5, FREAD, C.ink, 1.4);
+    const R = textBlock([{ t: `${LETRAS[i]}) `, b: 1 }, { t: b }], half, bodyPt - 0.5, FREAD, C.ink, 1.4);
+    const h = Math.max(L.h, R.h);
+    return { h, notes: [], gap: m(3), draw(ctx, x, y) {
+      L.draw(ctx, x, y); R.draw(ctx, x + half + m(14), y);
+      ctx.fillStyle = C.ink; const dy = y + L.lh / 2;
+      [x + half + m(3), x + half + m(11)].forEach(cx => { ctx.beginPath(); ctx.arc(cx, dy, m(0.9), 0, Math.PI * 2); ctx.fill(); });
+    } };
+  }
+  function tableRow(cells, header, ncols) {
+    const cw = colW / ncols, pad = m(1.8);
+    const tbs = cells.map(c => textBlock([{ t: c || "", b: header ? 1 : 0 }], cw - 2 * pad, bodyPt - (header ? 1 : 1.5), FREAD, C.ink, 1.35));
+    const h = Math.max(header ? m(8) : m(10), ...tbs.map(t => t.h + 2 * pad));
+    return { h, notes: [], gap: 0, keep: header, draw(ctx, x, y) {
+      if (header) { ctx.fillStyle = C.soft; ctx.fillRect(x, y, colW, h); }
+      ctx.strokeStyle = C.ink; ctx.lineWidth = m(0.3);
+      for (let k = 0; k < ncols; k++) { ctx.strokeRect(x + k * cw, y, cw, h); tbs[k].draw(ctx, x + k * cw + pad, y + pad); }
+    } };
+  }
+  function eventoBlock(f, h) {
+    const t = textBlock([{ t: f + (h ? "   " : ""), b: 1 }, { t: h || "" }], colW - m(9), bodyPt, FREAD, C.ink, 1.45);
+    const hh = h ? t.h : Math.max(t.h, m(8));
+    return { h: hh, notes: [], gap: m(3), draw(ctx, x, y) {
+      ctx.strokeStyle = C.acc; ctx.lineWidth = m(0.5); ctx.beginPath(); ctx.moveTo(x + m(2.5), y); ctx.lineTo(x + m(2.5), y + hh + m(3)); ctx.stroke();
+      ctx.fillStyle = C.acc; ctx.beginPath(); ctx.arc(x + m(2.5), y + t.lh / 2, m(1.3), 0, Math.PI * 2); ctx.fill();
+      t.draw(ctx, x + m(9), y);
+      if (!h) { meas.font = `700 ${px(bodyPt)}px ${FREAD}`; const w = meas.measureText(f + "  ").width; ctx.strokeStyle = C.line; ctx.lineWidth = m(0.3); ctx.beginPath(); ctx.moveTo(x + m(9) + w, y + t.lh * 0.8); ctx.lineTo(x + colW, y + t.lh * 0.8); ctx.stroke(); }
+    } };
+  }
+  (d.actividades || []).forEach((a, k) => {
+    const v = actView(a, k + 1);
+    blocks.push(Object.assign(headBlock(`Actividad ${v.n}: ${v.titulo}`, bodyPt + 1), { before: m(5) }));
+    if (v.consigna) { const cb = textBlock([{ t: v.consigna, i: 1 }], colW, bodyPt - 0.5, FREAD, C.ink, 1.4); blocks.push({ h: cb.h, notes: [], gap: m(3), keep: true, draw: (ctx, x, y) => cb.draw(ctx, x, y) }); }
+    if (v.banco && v.banco.length) blocks.push(bancoBlock(v.banco));
+    switch (v.formato) {
+      case "vf": v.rows.forEach((r, i) => blocks.push(itemBlock([{ t: `${i + 1}. `, b: 1 }, { t: r.t }], { vf: true }))); break;
+      case "unir": v.izq.forEach((x, i) => blocks.push(unirBlock(x, v.der[i] || "", i))); break;
+      case "ordenar": v.rows.forEach(r => blocks.push(itemBlock([{ t: r }], { box: true }))); break;
+      case "completar": v.rows.forEach((r, i) => blocks.push(itemBlock([{ t: `${i + 1}. `, b: 1 }, { t: r }]))); break;
+      case "opciones": v.qs.forEach((q, i) => blocks.push(questionBlock({ pregunta: q.p, opciones: q.o }, i))); break;
+      case "clasificar": blocks.push(tableRow(v.cols, true, v.cols.length)); for (let i = 0; i < v.nfilas; i++) blocks.push(tableRow(v.cols.map(() => ""), false, v.cols.length)); blocks[blocks.length - 1].gap = m(4); break;
+      case "linea_tiempo": v.eventos.forEach(e => blocks.push(eventoBlock(e.f, e.h))); break;
+      case "tabla": blocks.push(tableRow(v.cols, true, v.cols.length)); v.filas.forEach(r => blocks.push(tableRow(v.cols.map((_, i) => r[i] || ""), false, v.cols.length))); blocks[blocks.length - 1].gap = m(4); break;
+      default: v.rows.forEach((r, i) => { blocks.push(Object.assign(itemBlock([{ t: `${i + 1}. `, b: 1 }, { t: r }]), { keep: true })); blocks.push(linesBlock(v.lineas)); });
+    }
+  });
 
   /* Paginación (plan sin dibujar, para poder probar varias opciones) */
   const top = m(A5.mT), bottom = m(A5.H - A5.mB), x0 = m(A5.mL);
@@ -1737,8 +2023,30 @@ function layoutA5(d, cfg, S) {
   }
   const lastFill = Math.min(1, (plan[plan.length - 1].y - top) / (bottom - top));
 
+  function drawCover(ctx) {
+    const w = colW + (margin ? m(39) : 0), cx = x0;
+    let y = m(24);
+    const kick = textBlock([{ t: ("Lectura Fácil" + (d.materia ? "  ·  " + d.materia : "")).toUpperCase(), b: 1 }], w, 8.5, FUI, C.acc, 1.3);
+    kick.draw(ctx, cx, y); y += kick.h + m(3);
+    ctx.strokeStyle = C.acc; ctx.lineWidth = m(0.6); ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + m(22), y); ctx.stroke(); y += m(9);
+    const tt = textBlock([{ t: d.titulo || "", b: 1 }], w, 30, FUI, C.ink, 1.1); tt.draw(ctx, cx, y); y += tt.h + m(4);
+    if (d.autor) { const au = textBlock([{ t: d.autor, i: 1 }], w, 13, FUI, C.muted, 1.3); au.draw(ctx, cx, y); y += au.h; }
+    const sz = m(54), py = Math.max(y + m(16), m(92));
+    picto(ctx, coverPic, (m(A5.W) - sz) / 2, py, sz);
+    let by = m(162);
+    const field = (label, value) => {
+      lbl(ctx, label, cx, by, 11); meas.font = `700 ${px(11)}px ${FREAD}`; const lw = meas.measureText(label + " ").width;
+      ctx.strokeStyle = C.line; ctx.lineWidth = m(0.3); ctx.beginPath(); ctx.moveTo(cx + lw, by + m(1)); ctx.lineTo(cx + w, by + m(1)); ctx.stroke();
+      if (value) { ctx.font = `400 ${px(12)}px ${FREAD}`; ctx.fillStyle = C.ink; ctx.fillText(value, cx + lw + m(2), by - m(0.5)); }
+      by += m(11);
+    };
+    field("Nombre:", cfg.alumno || ""); field("Curso:", ""); if (cfg.escuela) field("Escuela:", cfg.escuela);
+    const foot = textBlock([{ t: "Versión en Lectura Fácil" + (d.curso ? " · " + d.curso : ""), i: 1 }], w, 8.5, FREAD, C.muted, 1.3);
+    foot.draw(ctx, cx, m(A5.H - 12));
+  }
+  const cov = cfg.portada ? 1 : 0;
   function draw(extra = 0, extraKind = "notas") {
-    const total = plan.length + extra;
+    const total = plan.length + extra + cov;
     const canv = plan.map(() => null);
     const mk = () => { const cv = document.createElement("canvas"); cv.width = Math.round(m(A5.W)); cv.height = Math.round(m(A5.H)); const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); return { cv, ctx }; };
     const footer = (ctx, k) => { ctx.font = `400 ${px(8.5)}px ${FUI}`; ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillText(`${d.titulo || ""}  ·  ${k + 1} / ${total}`, m(A5.W / 2), m(A5.H - 8)); ctx.textAlign = "left"; };
@@ -1753,16 +2061,17 @@ function layoutA5(d, cfg, S) {
         p.notes.forEach(gi => { const nb = noteBlock(gi, colW, false); nb.draw(ctx, x0, y); y += nb.h + m(1.6); });
       }
       if (margin) { ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25); ctx.beginPath(); ctx.moveTo(noteX - m(2.5), top); ctx.lineTo(noteX - m(2.5), bottom); ctx.stroke(); }
-      footer(ctx, k);
+      footer(ctx, k + cov);
       return cv;
     });
+    if (cov) { const { cv, ctx } = mk(); drawCover(ctx); out.unshift(cv); }
     for (let e = 0; e < extra; e++) {
       const { cv, ctx } = mk();
       if (extraKind === "notas") {
         const t = textBlock([{ t: "Mis notas", b: 1 }], colW, 15, FUI, C.acc, 1.3); t.draw(ctx, x0, top);
         ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25);
         for (let y = top + t.h + m(10); y <= bottom; y += m(9)) { ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(m(A5.W - A5.mR), y); ctx.stroke(); }
-        footer(ctx, plan.length + e);
+        footer(ctx, plan.length + e + cov);
       }
       out.push(cv);
     }
@@ -1773,7 +2082,7 @@ function layoutA5(d, cfg, S) {
     });
     return out;
   }
-  return { count: plan.length, lastFill, size: bodyPt, draw };
+  return { count: plan.length + cov, lastFill, size: bodyPt, draw };
 }
 
 /* Ajuste automático: prueba tamaños de letra y elige el diseño más prolijo */
@@ -1810,7 +2119,7 @@ function spreadCanvas(pages, sp, S, preview) {
   return cv;
 }
 
-function prCfg() { return { size: +$("pr-size").value, glosa: $("pr-glosa").value, pictos: currentShowPictos, bw: $("pr-color").value === "bw", font: $("pr-font").value, formato: $("pr-formato").value, auto: $("pr-auto").checked, sobrantes: $("pr-sobrantes").value }; }
+function prCfg() { return { size: +$("pr-size").value, glosa: $("pr-glosa").value, pictos: currentShowPictos, bw: $("pr-color").value === "bw", font: $("pr-font").value, formato: $("pr-formato").value, auto: $("pr-auto").checked, sobrantes: $("pr-sobrantes").value, portada: $("pr-portada").checked, alumno: $("pr-alumno").value.trim(), escuela: $("pr-escuela").value.trim() }; }
 let prTimer = null;
 async function prPreview() {
   $("pr-status").textContent = "Preparando las páginas…";
@@ -1869,6 +2178,11 @@ $("btn-print").onclick = () => { openSheet("sheet-print"); prPreview(); };
 $("btn-pdf").textContent = "Descargar PDF";
 const PR_IDS = ["pr-size", "pr-glosa", "pr-color", "pr-font", "pr-formato", "pr-sobrantes"];
 $("pr-auto").addEventListener("change", () => { lsSet("lf-pr-auto", $("pr-auto").checked ? "1" : "0"); prPreview(); });
+$("pr-portada").addEventListener("change", () => { lsSet("lf-pr-portada", $("pr-portada").checked ? "1" : "0"); $("pr-cover-fields").hidden = !$("pr-portada").checked; prPreview(); });
+if (lsGet("lf-pr-portada") === "0") { $("pr-portada").checked = false; $("pr-cover-fields").hidden = true; }
+$("pr-escuela").value = lsGet("lf-pr-escuela") || "";
+let prT = null;
+["pr-alumno", "pr-escuela"].forEach(id => $(id).addEventListener("input", () => { if (id === "pr-escuela") lsSet("lf-pr-escuela", $(id).value); clearTimeout(prT); prT = setTimeout(prPreview, 600); }));
 if (lsGet("lf-pr-auto") === "0") $("pr-auto").checked = false;
 PR_IDS.forEach(id => $(id).addEventListener("change", () => { lsSet("lf-" + id, $(id).value); prHint(); prPreview(); }));
 function prHint() { $("pr-hint").innerHTML = $("pr-formato").value === "cuadernillo"
