@@ -87,6 +87,17 @@ input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: 
 .picto-btn { border: 1.5px dashed var(--accent); color: var(--accent); cursor: pointer; padding: 0; }
 .emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
 .emoji-grid button { font-family: var(--f-emoji); font-size: 1.5rem; padding: 6px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.player { position: fixed; z-index: 15; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 24px); background: var(--ink); color: var(--surface); padding: 8px 10px; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.25); font-family: var(--f-ui); }
+.player button, .player select { font: inherit; font-size: 0.92rem; font-weight: 600; color: var(--ink); background: var(--surface); border: 0; border-radius: 6px; padding: 8px 12px; min-height: 40px; }
+.player select { width: auto; padding: 8px; }
+.player .pl-stop { background: var(--bad-soft); color: var(--bad); }
+.pl-info { font-size: 0.8rem; opacity: .8; min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.pl-icon { font-family: var(--f-emoji); }
+.player { flex-wrap: nowrap; white-space: nowrap; }
+@media (max-width: 480px) { .pl-icon, .pl-info { display: none; } .player { gap: 5px; padding: 6px; } .player button, .player select { padding: 8px 9px; font-size: 0.88rem; } }
+.speaking { background: var(--accent-soft); box-shadow: 0 0 0 8px var(--accent-soft); border-radius: 4px; }
+@media (prefers-reduced-motion: no-preference) { .speaking { transition: background .2s, box-shadow .2s; } }
+body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -408,6 +419,17 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
   </div>
 </div>
 
+<div id="player" class="player" role="region" aria-label="Lectura en voz alta" hidden>
+  <span class="pl-icon" aria-hidden="true">🔊</span>
+  <span class="pl-info" id="pl-info"></span>
+  <button type="button" id="pl-prev" aria-label="Párrafo anterior">⏮</button>
+  <button type="button" id="pl-pause">⏸ Pausa</button>
+  <button type="button" id="pl-next" aria-label="Párrafo siguiente">⏭</button>
+  <label class="sr" for="pl-rate">Velocidad</label>
+  <select id="pl-rate" title="Velocidad"><option value="0.75">Lenta</option><option value="0.9">Normal</option><option value="1.1">Rápida</option></select>
+  <button type="button" id="pl-stop" class="pl-stop">⏹ Detener</button>
+</div>
+
 <div class="sheet" id="sheet-install" hidden>
   <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-install">
     <h2 id="h-install">Tenerla en el celular <button class="btn small" type="button" data-close>Cerrar</button></h2>
@@ -603,16 +625,51 @@ function pic(p) {
 }
 function pictoEl(p, key) { const e = pic(p); if (editing && key) return `<button type="button" class="picto picto-btn" data-pic="${key}" aria-label="Cambiar pictograma">${e ? `<span>${e}</span>` : "＋"}</button>`; return `<div class="picto" aria-hidden="true">${e ? `<span>${e}</span>` : ""}</div>`; }
 
-function speak(text) {
+/* Lectura en voz alta: de a un párrafo, con Pausa / Seguir / Detener */
+let spQueue = [], spIdx = 0, spGen = 0, spActive = false, spPaused = false;
+function spClear() { document.querySelectorAll(".speaking").forEach(e => e.classList.remove("speaking")); }
+function stopSpeak() {
+  spGen++; spActive = false; spPaused = false; spQueue = [];
+  try { speechSynthesis.cancel(); } catch (e) {}
+  spClear(); const pl = document.getElementById("player"); if (pl) pl.hidden = true;
+}
+function speakList(items) {
   if (!canSpeak) return;
+  stopSpeak();
+  spQueue = items.filter(x => x && x.t && String(x.t).trim());
+  if (!spQueue.length) return;
+  spIdx = 0; spActive = true; spPaused = false;
+  $("player").hidden = false; $("pl-pause").textContent = "⏸ Pausa"; $("pl-pause").setAttribute("aria-label", "Pausar la lectura");
+  nextSpeak(spGen);
+}
+function nextSpeak(gen) {
+  if (gen !== spGen || !spActive) return;
+  spClear();
+  if (spIdx >= spQueue.length) { stopSpeak(); return; }
+  const it = spQueue[spIdx++];
+  if (it.el) { it.el.classList.add("speaking"); try { it.el.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (e) {} }
+  $("pl-info").textContent = `${spIdx} de ${spQueue.length}`;
   try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "es-ES"; u.rate = 0.9;
+    const u = new SpeechSynthesisUtterance(plain(it.t));
+    u.lang = "es-ES"; u.rate = +(lsGet("lf-rate") || 0.9);
     const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
     if (v) u.voice = v;
+    u.onend = u.onerror = () => { if (gen === spGen) nextSpeak(gen); };
     speechSynthesis.speak(u);
-  } catch (e) {}
+  } catch (e) { stopSpeak(); }
+}
+function itemsFor(i) {
+  const s = current.secciones[i], out = [];
+  if (s.subtitulo) out.push({ t: s.subtitulo, el: document.querySelector(`[data-ed="sub.${i}"]`)?.closest("h4") });
+  (s.parrafos || []).forEach((p, j) => out.push({ t: txt(p), el: document.querySelector(`[data-ed="p.${i}.${j}"]`)?.closest(".lf-row") }));
+  return out;
+}
+function itemsAll() {
+  const out = [{ t: current.titulo, el: document.querySelector('[data-ed="titulo"]') }];
+  if (current.antes_de_leer && txt(current.antes_de_leer)) out.push({ t: txt(current.antes_de_leer), el: document.querySelector('[data-ed="antes"]')?.closest(".summary") });
+  if (current.en_una_frase && txt(current.en_una_frase)) out.push({ t: txt(current.en_una_frase), el: document.querySelector('[data-ed="frase"]')?.closest(".summary") });
+  (current.secciones || []).forEach((_, i) => out.push(...itemsFor(i)));
+  return out;
 }
 
 let editing = false;
@@ -622,6 +679,7 @@ function refLabel(d, p) {
   return `Original ¶${n}: «${d.orig_refs[n]}…»`;
 }
 function render(d, isExample, showPictos) {
+  if (typeof stopSpeak === "function" && spActive) stopSpeak();
   current = d; currentShowPictos = showPictos;
   $("badge").hidden = !isExample;
   $("btn-edit").textContent = editing ? "✓ Listo" : "✏️ Editar";
@@ -750,7 +808,7 @@ $("emoji-none").onclick = () => setPicto("");
 
 $("result").addEventListener("click", (e) => {
   const sp = e.target.closest("[data-speak]");
-  if (sp) { const s = current.secciones[+sp.dataset.speak]; speak((s.subtitulo ? s.subtitulo + ". " : "") + s.parrafos.map(p => plain(txt(p))).join(" ")); return; }
+  if (sp) { speakList(itemsFor(+sp.dataset.speak)); return; }
   const b = e.target.closest("button[data-o]");
   if (!b) return;
   const q = current.preguntas[+b.dataset.q];
@@ -1061,7 +1119,19 @@ $("btn-stop").onclick = () => ctl?.abort();
 $("btn-hist").onclick = showHist;
 $("btn-install").onclick = () => openSheet("sheet-install");
 $("btn-copy-link").onclick = () => copyText($("page-link").textContent, $("btn-copy-link"), "Copiar enlace");
-$("btn-read-all").onclick = () => speak([current.titulo, plain(txt(current.en_una_frase)), ...current.secciones.flatMap(s => [s.subtitulo, ...s.parrafos.map(p => plain(txt(p)))])].join(". "));
+$("btn-read-all").onclick = () => { if (spActive) stopSpeak(); else speakList(itemsAll()); };
+$("pl-pause").onclick = () => {
+  if (!spActive) return;
+  if (spPaused) { speechSynthesis.resume(); spPaused = false; $("pl-pause").textContent = "⏸ Pausa"; $("pl-pause").setAttribute("aria-label", "Pausar la lectura"); }
+  else { speechSynthesis.pause(); spPaused = true; $("pl-pause").textContent = "▶ Seguir"; $("pl-pause").setAttribute("aria-label", "Seguir leyendo"); }
+};
+$("pl-stop").onclick = stopSpeak;
+$("pl-prev").onclick = () => { if (!spActive) return; const g = ++spGen; spIdx = Math.max(0, spIdx - 2); spPaused = false; $("pl-pause").textContent = "⏸ Pausa"; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => nextSpeak(g), 60); };
+$("pl-next").onclick = () => { if (!spActive) return; const g = ++spGen; spPaused = false; $("pl-pause").textContent = "⏸ Pausa"; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => nextSpeak(g), 60); };
+$("pl-rate").value = lsGet("lf-rate") || "0.9";
+$("pl-rate").onchange = () => lsSet("lf-rate", $("pl-rate").value);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && spActive) stopSpeak(); });
+window.addEventListener("pagehide", stopSpeak);
 $("btn-copy").onclick = () => copyText(fullText(current), $("btn-copy"), "Copiar");
 $("btn-doc").onclick = async () => {
   const name = (current.titulo || "texto-adaptado").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w -]/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "texto-adaptado";
