@@ -104,6 +104,21 @@ body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
 .voice-item small { color: var(--muted); }
 .voice-item.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .vtag { font-size: 0.72rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.compare { display: grid; gap: 0; font-family: var(--f-read); }
+.cmp-head { display: grid; gap: 6px; padding-bottom: 14px; }
+.cmp-head h3 { font-family: var(--f-head); font-size: 1.5rem; margin: 0; }
+.cmp-warn { color: var(--bad); }
+.cmp-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); }
+.cmp-row.miss .cmp-o { background: var(--bad-soft); border-radius: 6px; padding: 6px 8px; }
+.cmp-o { color: var(--muted); font-size: 0.95rem; line-height: 1.55; }
+.cmp-n { display: inline-block; font-family: var(--f-ui); font-weight: 700; color: var(--accent); margin-right: 6px; font-size: 0.8rem; }
+.cmp-a { font-size: 1.05rem; line-height: 1.6; }
+.cmp-a p { margin: 0 0 8px; }
+.cmp-sub { font-family: var(--f-head); font-weight: 600; margin-bottom: 4px; }
+.cmp-inc { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+.cmp-miss { color: var(--bad); font-size: 0.9rem; font-family: var(--f-ui); }
+@media (max-width: 700px) { .cmp-row { grid-template-columns: minmax(0, 1fr); gap: 8px; } .cmp-a { border-left: 3px solid var(--accent); padding-left: 10px; } }
+body.student #btn-compare { display: none; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -427,6 +442,7 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
           <button class="btn small" id="btn-voice" type="button" aria-label="Elegir la voz de lectura">🗣 Voz</button>
           <button class="btn small" id="btn-read-all" type="button">🔊 Escuchar</button>
           <span class="tools-teacher" style="display:contents">
+            <button class="btn small" id="btn-compare" type="button">⇆ Comparar</button>
             <button class="btn small" id="btn-edit" type="button">✏️ Editar</button>
             <button class="btn small" id="btn-print" type="button">📄 Imprimir</button>
             <button class="btn small" id="btn-copy" type="button">Copiar</button>
@@ -535,6 +551,8 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <li>Lee el recuadro amarillo <b>Para revisar</b>: dice qué se cambió.</li>
         <li>Para corregir algo, pulsa <b>✏️ Editar</b>, toca el texto y cámbialo. Tocando un pictograma puedes elegir otro. Al terminar, pulsa <b>✓ Listo</b>.</li>
         <li>Si falta una palabra en el glosario, escríbela y pulsa <b>+ Agregar al glosario</b>.</li>
+        <li>Con <b>⇆ Comparar</b> ves cada párrafo del original al lado de su versión adaptada; los párrafos que quedaron sin adaptación se marcan en rojo.</li>
+        <li>Los textos largos se adaptan solos <b>por partes</b>; verás el avance («parte 2 de 4»).</li>
         <li>Con <b>Guía del original</b> activada, cada parte muestra de qué párrafo del texto original sale y sus primeras palabras («Original ¶3: …»), para seguir la lectura junto con la clase.</li>
         <li>Usa <b>Vista alumna</b> para que lo lea en pantalla, <b>📄 Imprimir</b> para el PDF en A5 o en cuadernillo, o <b>Descargar Word</b> para editarlo.</li>
       </ol>
@@ -763,7 +781,7 @@ function itemsAll() {
 let editing = false;
 function refLabel(d, p) {
   const n = p && typeof p === "object" ? parseInt(p.orig, 10) : 0;
-  if (!n || !d.orig_refs || !d.orig_refs[n]) return "";
+  if (!n || !d.orig_refs || !d.orig_refs[n] || d.show_refs === false) return "";
   return `Original ¶${n}: «${d.orig_refs[n]}…»`;
 }
 function render(d, isExample, showPictos) {
@@ -771,6 +789,7 @@ function render(d, isExample, showPictos) {
   current = d; currentShowPictos = showPictos;
   $("badge").hidden = !isExample;
   $("btn-edit").textContent = editing ? "✓ Listo" : "✏️ Editar";
+  if (typeof comparing !== "undefined") { comparing = false; $("btn-compare").textContent = "⇆ Comparar"; $("btn-compare").hidden = !d.orig_paras; }
   const poem = d.tipo === "poema", E = editing ? ' contenteditable="true" spellcheck="true"' : "";
   const o = [];
   o.push(`<div class="reading${showPictos ? "" : " nopicto"}${poem ? " poem" : ""}${editing ? " editing" : ""}">`);
@@ -1047,14 +1066,14 @@ GLOSARIO: revisa el texto palabra por palabra y lleva al glosario TODAS las pala
 
 PICTOGRAMAS: cada párrafo${o.tipo === "poema" ? " (verso)" : ""}, cada personaje y cada palabra del glosario llevan un campo "picto" con UN SOLO emoji que represente lo más concreto de esa frase (una persona, un objeto, una acción, una emoción). Evita banderas y emojis ambiguos.
 
-${o.numbered ? `PÁRRAFOS DEL ORIGINAL: el texto original tiene sus párrafos numerados entre corchetes: [1], [2], [3]… En cada párrafo de tu versión, pon en "orig" el número del párrafo original del que sale ese contenido (si junta varios, el primero). Respeta el orden del original. No escribas los números ni los corchetes dentro del texto.\n\n` : ""}RESPONDE SOLO con un objeto JSON con esta forma exacta:
+${o.numbered ? `PÁRRAFOS DEL ORIGINAL: el texto original tiene sus párrafos numerados entre corchetes: [1], [2], [3]… En cada párrafo de tu versión, pon en "orig" el número del párrafo original del que sale ese contenido y en "hasta" el último párrafo original que abarca (igual a "orig" si sale de uno solo; si juntas o resumes varios, el último de ellos). Cada párrafo del original debe quedar cubierto por algún párrafo de tu versión. Respeta el orden del original. No escribas los números ni los corchetes dentro del texto.\n\n` : ""}RESPONDE SOLO con un objeto JSON con esta forma exacta:
 {
   "titulo": "el título original, o uno corto y claro si no tiene",
   "autor": "autor o autora si es una obra literaria; si no, \\"\\"",
   "antes_de_leer": ${narr ? '{"texto": "1 o 2 frases (o \\"\\" si no hace falta)", "picto": "emoji"}' : "null"},
   "en_una_frase": ${o.tipo === "informativo" ? '{"texto": "resumen en una frase muy simple", "picto": "emoji"}' : "null"},
   "personajes": ${o.pers && o.tipo === "narrativo" ? '[{"nombre": "", "descripcion": "1 frase simple: quién es. Sin adelantar lo que le pasa", "picto": "emoji"}]' : "[]"},
-  "secciones": [{"subtitulo": "string", "parrafos": [{"texto": "string", "picto": "emoji"${o.numbered ? ', "orig": 1' : ""}}]${pistas ? ', "pistas": ["string"]' : ""}}],
+  "secciones": [{"subtitulo": "string", "parrafos": [{"texto": "string", "picto": "emoji"${o.numbered ? ', "orig": 1, "hasta": 1' : ""}}]${pistas ? ', "pistas": ["string"]' : ""}}],
   "glosario": ${o.glos ? '[{"palabra": "", "significado": "explicación muy simple", "ejemplo": "ejemplo cotidiano corto", "picto": "emoji"}] (todas las necesarias)' : "[]"},
   "ideas_clave": ${o.ideas ? '["3 a 5 frases cortas con lo más importante"]' : "[]"},
   "preguntas": ${o.preg ? '[{"pregunta": "", "opciones": ["3 opciones cortas"], "correcta": 0, "explicacion": "por qué, en una frase"}] (3 a 5 preguntas sencillas de comprensión; "correcta" es el índice empezando en 0; varía su posición)' : "[]"},
@@ -1158,32 +1177,129 @@ function splitOriginal(t) {
   if (cur) parts.push(cur);
   return parts;
 }
+/* Adaptación: textos largos se adaptan por partes y se unen */
+const CHUNK_CHARS = 9000;
+function makeChunks(paras) {
+  const chunks = []; let cur = [], len = 0;
+  paras.forEach((t, k) => {
+    if (cur.length && len + t.length > CHUNK_CHARS) { chunks.push(cur); cur = []; len = 0; }
+    cur.push(k); len += t.length;
+  });
+  if (cur.length) chunks.push(cur);
+  // evitar una última parte muy corta: unirla con la anterior
+  if (chunks.length > 1) { const last = chunks[chunks.length - 1]; const lastLen = last.reduce((a, k) => a + paras[k].length, 0); if (lastLen < CHUNK_CHARS * 0.25) chunks[chunks.length - 2].push(...chunks.pop()); }
+  return chunks;
+}
+function adaptedPlain(secs) { return secs.flatMap(s => [s.subtitulo ? `[${s.subtitulo}]` : "", ...(s.parrafos || []).map(p => plain(txt(p)))]).filter(Boolean).join("\n"); }
+function partNote(k, n, acc, header) {
+  if (n === 1) return "";
+  const prev = acc ? adaptedPlain(acc.secciones) : "";
+  const tail = prev.slice(-1500);
+  const pers = (acc?.personajes || []).map(c => c.nombre).join(", ");
+  const gl = (acc?.glosario || []).map(g => g.palabra).join(", ");
+  return `ADAPTACIÓN POR PARTES: el texto es largo y se adapta en ${n} partes. Esta es la PARTE ${k} DE ${n}.
+${k > 1 ? `- Es la continuación: no repitas el título ni presentes de nuevo la historia. Deja "antes_de_leer" y "en_una_frase" vacíos ("").
+- Mantén el mismo estilo, el mismo narrador y los mismos nombres que en las partes anteriores.
+- Título de la obra: ${acc?.titulo || header.join(" ")}.
+${pers ? `- Personajes ya presentados (no los repitas en "personajes", salvo que aparezca uno nuevo): ${pers}.\n` : ""}${gl ? `- Palabras que YA están en el glosario (no las repitas en "glosario" ni las marques con **): ${gl}.\n` : ""}- Así termina la versión adaptada hasta ahora:\n"""\n${tail}\n"""` : ""}
+${k < n ? `- No cierres el relato ni agregues un final: continúa en la parte siguiente.` : `- Es la última parte.${prev ? ` Las ideas clave y las preguntas (si se piden) deben abarcar TODO el texto. Esto es lo que pasó en las partes anteriores (versión adaptada):\n"""\n${prev.slice(0, 6000)}\n"""` : ""}`}
+
+`;
+}
+function mergeParts(acc, d) {
+  if (!acc) return d;
+  const has = (arr, key, v) => arr.some(x => norm(x[key]) === norm(v));
+  acc.secciones.push(...(d.secciones || []));
+  (d.glosario || []).forEach(g => { if (g?.palabra && !has(acc.glosario, "palabra", g.palabra)) acc.glosario.push(g); });
+  (d.personajes || []).forEach(c => { if (c?.nombre && !has(acc.personajes, "nombre", c.nombre)) acc.personajes.push(c); });
+  acc.notas_docente.push(...(d.notas_docente || []));
+  if (d.ideas_clave?.length) acc.ideas_clave = d.ideas_clave;
+  if (d.preguntas?.length) acc.preguntas = d.preguntas;
+  return acc;
+}
+
 async function adapt() {
   const texto = $("original").value.trim();
   if (!texto) { setStatus("Pega un texto antes de adaptar.", "err"); return; }
   const o = opts();
   ctl = new AbortController();
   setBusy(true);
-  setStatus("Leyendo y adaptando el texto… suele tardar entre 20 segundos y 1 minuto.", "busy");
+  const { header, body } = splitHeader(texto);
+  const paras = splitOriginal(body);
+  o.numbered = paras.length > 1;
+  const chunks = o.numbered ? makeChunks(paras) : [null];
+  const n = chunks.length;
+  let acc = null, done = 0;
   try {
-    const { header, body } = splitHeader(texto);
-    const paras = splitOriginal(body);
-    o.numbered = o.guia && paras.length > 1;
-    const src = o.numbered ? (header.length ? header.join("\n") + "\n\n" : "") + paras.map((t, k) => `[${k + 1}] ${t}`).join("\n\n") : texto;
-    const d = await sample.json(buildPrompt(src, o), { signal: ctl.signal });
-    if (!d || !Array.isArray(d.secciones) || !d.secciones.length) throw { code: "invalid_json" };
-    d.tipo = o.tipo;
-    if (o.numbered) d.orig_refs = Object.fromEntries(paras.map((t, k) => [k + 1, t.split(/\s+/).slice(0, 6).join(" ").replace(/[,;:.]$/, "")]));
-    editing = false;
-    render(d, false, o.pictos);
-    saveHist(d, o.pictos);
-    setStatus("Listo. Revisa el texto y las notas para la docente antes de dárselo a la alumna.");
-    if (window.matchMedia("(max-width: 900px)").matches) $("h-out").scrollIntoView({ behavior: "smooth" });
+    for (let k = 0; k < n; k++) {
+      setStatus(n > 1 ? `Adaptando la parte ${k + 1} de ${n}… cada parte tarda entre 30 segundos y 2 minutos.` : "Leyendo y adaptando el texto… suele tardar entre 20 segundos y 1 minuto.", "busy");
+      const last = k === n - 1;
+      const ok = Object.assign({}, o, { ideas: o.ideas && last, preg: o.preg && last, pers: o.pers });
+      let src;
+      if (!o.numbered) src = texto;
+      else src = (k === 0 && header.length ? header.join("\n") + "\n\n" : "") + chunks[k].map(i => `[${i + 1}] ${paras[i]}`).join("\n\n");
+      const prompt = buildPrompt(src, ok).replace("TEXTO ORIGINAL:", partNote(k + 1, n, acc, header) + (n > 1 ? `TEXTO ORIGINAL (parte ${k + 1} de ${n}):` : "TEXTO ORIGINAL:"));
+      const d = await sample.json(prompt, { signal: ctl.signal });
+      if (!d || !Array.isArray(d.secciones) || !d.secciones.length) throw { code: "invalid_json", part: k + 1 };
+      d.glosario = Array.isArray(d.glosario) ? d.glosario : []; d.personajes = Array.isArray(d.personajes) ? d.personajes : []; d.notas_docente = Array.isArray(d.notas_docente) ? d.notas_docente : [];
+      acc = mergeParts(acc, d); done = k + 1;
+    }
+    finishAdapt(acc, o, header, paras, null);
+    setStatus(n > 1 ? `Listo: se adaptó en ${n} partes. Usa «⇆ Comparar» para revisar que no falte nada.` : "Listo. Revisa el texto y las notas para la docente antes de dárselo a la alumna.");
   } catch (e) {
-    if (e?.code === "cancelled") setStatus("Adaptación detenida.");
+    if (acc && done < n) {
+      finishAdapt(acc, o, header, paras, `Adaptación incompleta: se adaptaron ${done} de ${n} partes. Faltan los párrafos del original desde el ¶${chunks[done][0] + 1}.`);
+      setStatus(`Se adaptaron ${done} de ${n} partes; se mostró lo que hay. ${e?.code === "cancelled" ? "La adaptación se detuvo." : (ERRORS[e?.code] || "Hubo un problema de conexión.")} Para completarlo, pega desde el ¶${chunks[done][0] + 1} y adáptalo aparte.`, "err");
+    } else if (e?.code === "cancelled") setStatus("Adaptación detenida.");
     else { setStatus(ERRORS[e?.code] || "Hubo un problema de conexión. Vuelve a pulsar «Adaptar texto».", "err"); if (["not_granted", "sampling_disabled", "session_expired"].includes(e?.code)) { $("help-cta").hidden = false; diag.ia = "error " + e.code; showDiag(); } if (e?.code === "not_granted" && perms) $("btn-perm").hidden = false; }
   } finally { setBusy(false); }
 }
+function finishAdapt(d, o, header, paras, warning) {
+  d.tipo = o.tipo;
+  d.show_refs = o.guia;
+  if (paras.length > 1) {
+    d.orig_refs = Object.fromEntries(paras.map((t, k) => [k + 1, t.split(/\s+/).slice(0, 6).join(" ").replace(/[,;:.]$/, "")]));
+    d.orig_paras = paras; d.orig_header = header;
+  }
+  if (warning) d.notas_docente.unshift("⚠ " + warning);
+  editing = false; comparing = false;
+  render(d, false, o.pictos);
+  saveHist(d, o.pictos);
+  if (window.matchMedia("(max-width: 900px)").matches) $("h-out").scrollIntoView({ behavior: "smooth" });
+}
+
+/* Comparar con el original */
+let comparing = false;
+function renderCompare(d) {
+  const P = d.orig_paras, N = P.length;
+  const at = {}, covered = new Set(), loose = [];
+  let lastK = 0;
+  (d.secciones || []).forEach((s, i) => (s.parrafos || []).forEach((p, j) => {
+    let k = parseInt(p?.orig, 10); if (!(k >= 1 && k <= N)) k = lastK;
+    const h = Math.min(N, Math.max(k, parseInt(p?.hasta, 10) || k));
+    const item = { sub: j === 0 ? s.subtitulo : "", p };
+    if (!k) { loose.push(item); return; }
+    (at[k] = at[k] || []).push(item); for (let x = k; x <= h; x++) covered.add(x); lastK = k;
+  }));
+  const missing = []; for (let k = 1; k <= N; k++) if (!covered.has(k)) missing.push(k);
+  const cell = (it) => `${it.sub ? `<div class="cmp-sub">${esc(it.sub)}</div>` : ""}<p>${rich(txt(it.p))}</p>`;
+  const o = [];
+  o.push(`<div class="cmp-head"><h3>${esc(d.titulo)}</h3><p class="hint" style="margin:0">Cada fila muestra un párrafo del texto original (izquierda) y lo que salió de él en la versión adaptada (derecha). ${missing.length ? `<b class="cmp-warn">${missing.length} ${missing.length === 1 ? "párrafo" : "párrafos"} del original sin adaptación propia</b>: revisa que no falte nada importante.` : "Todos los párrafos del original tienen su adaptación."}</p></div>`);
+  if (loose.length) o.push(`<div class="cmp-row"><div class="cmp-o"><span class="cmp-n">—</span><i>Sin referencia</i></div><div class="cmp-a">${loose.map(cell).join("")}</div></div>`);
+  for (let k = 1; k <= N; k++) {
+    const right = at[k] ? at[k].map(cell).join("") : covered.has(k) ? `<div class="cmp-inc">↑ Incluido en la adaptación del párrafo anterior.</div>` : `<div class="cmp-miss">No tiene un párrafo propio en la adaptación. Puede estar resumido o haberse omitido.</div>`;
+    o.push(`<div class="cmp-row${covered.has(k) ? "" : " miss"}"><div class="cmp-o"><span class="cmp-n">¶${k}</span>${esc(P[k - 1])}</div><div class="cmp-a">${right}</div></div>`);
+  }
+  $("result").innerHTML = `<div class="compare">${o.join("")}</div>`;
+}
+$("btn-compare").onclick = () => {
+  if (!comparing && !current.orig_paras) { setStatus("Esta adaptación no tiene guardado el texto original (es un ejemplo o se hizo con una versión anterior). Adáptalo de nuevo para poder comparar.", "err"); return; }
+  if (typeof stopSpeak === "function" && spActive) stopSpeak();
+  comparing = !comparing;
+  if (editing) { editing = false; }
+  if (comparing) { renderCompare(current); $("btn-compare").textContent = "← Volver al texto"; }
+  else render(current, $("badge").hidden === false, currentShowPictos);
+};
 
 /* Historial en este dispositivo */
 const HKEY = "lf-historial";
@@ -1193,7 +1309,7 @@ function saveHist(d, pictos) {
     const h = loadHist();
     const t = Date.now(); d._t = t;
     h.unshift({ t, d, pictos });
-    localStorage.setItem(HKEY, JSON.stringify(h.slice(0, 15)));
+    for (let n = 15; n >= 1; n--) { try { localStorage.setItem(HKEY, JSON.stringify(h.slice(0, n))); break; } catch (err) { if (n === 1) throw err; } }
   } catch (e) {}
 }
 function showHist() {
@@ -1725,7 +1841,7 @@ async function checkPerm() {
     $("btn-go").disabled = true; $("btn-perm").hidden = false;
     setStatus("Esta página no tiene permiso para usar Claude en este navegador. Pulsa «Dar permiso» y activa Claude.", "err");
   }
-  showDiag();
+  if (diag.permiso === "denied") showDiag();
 }
 $("btn-perm").onclick = async () => {
   try { await perms.manage(); } catch (e) { setStatus("No se pudo abrir el panel. Busca el menú «Permisos» de la página, arriba en la barra de Claude, y activa Claude.", "err"); return; }
