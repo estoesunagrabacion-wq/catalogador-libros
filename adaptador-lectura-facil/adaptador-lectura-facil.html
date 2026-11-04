@@ -151,6 +151,29 @@ body.student #btn-compare { display: none; }
 .act-tools { font-size: 0.85rem; font-family: var(--f-ui); display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; }
 .act-tools summary { cursor: pointer; color: var(--accent); }
 .acts-gen { border-top: 1px dashed var(--line); padding-top: 14px; font-family: var(--f-ui); font-size: 0.95rem; }
+.act .vf { display: inline-flex; gap: 6px; }
+.vfb, .act-opt, .un-l, .un-r, .chipw { font: inherit; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; }
+.vfb { font-weight: 700; padding: 2px 12px; }
+.act-opt { text-align: left; padding: 8px 12px; }
+.vfb.ok, .act-opt.ok, .un-l.ok, .act-in.ok { background: var(--ok-soft); border-color: var(--ok); }
+.vfb.no, .act-opt.no, .un-l.no, .act-in.no { background: var(--bad-soft); border-color: var(--bad); }
+.vfb.on:not(.ok):not(.no) { border-color: var(--accent); }
+.un-l, .un-r { width: 100%; text-align: left; padding: 8px 10px; display: flex; gap: 8px; align-items: baseline; }
+.un-l.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.un-tag { font-weight: 700; color: var(--accent); min-width: 1.4em; }
+.act-unir li::marker { color: var(--muted); }
+.chipw { padding: 4px 10px; font-weight: 600; }
+.act-in { font: inherit; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+input.act-in.fill { width: 9em; max-width: 100%; }
+select.act-in { width: auto; max-width: 100%; }
+.act-ord li { flex-wrap: wrap; }
+.cell-in { width: 100%; border: 0; background: transparent; font: inherit; color: var(--ink); }
+.act-text { width: 100%; margin-top: 6px; font: inherit; font-size: 0.95em; min-height: 0; }
+.act-check { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-family: var(--f-ui); }
+.act-res { font-size: 0.95rem; font-weight: 600; }
+.act-tip { margin: 0; font-family: var(--f-ui); }
+.act-list .vf { float: none; display: inline-flex; margin-left: 10px; }
+.act-list > li > span:first-child { margin-right: 6px; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -1567,13 +1590,13 @@ function actView(a, n) {
   const seed = hashStr((a.titulo || "") + n);
   const v = { n, titulo: a.titulo || "Actividad", consigna: a.consigna || "", picto: a.picto || "", formato: a.formato, solucion: a.solucion || "" };
   switch (a.formato) {
-    case "vf": v.rows = (a.items || []).map(it => ({ t: it.texto || String(it) })); break;
-    case "unir": { const pares = (a.pares || []).filter(p => p && p.a && p.b); v.izq = pares.map(p => p.a); v.der = seededShuffle(pares.map(p => p.b), seed); break; }
-    case "ordenar": v.rows = seededShuffle((a.items || []).map(x => typeof x === "string" ? x : (x.texto || "")), seed); break;
-    case "completar": v.rows = (a.items || []).map(it => blankify(it.texto || it)); v.banco = a.banco === false ? null : seededShuffle((a.items || []).map(it => it.respuesta).filter(Boolean), seed); break;
-    case "opciones": v.qs = (a.items || []).map(q => ({ p: q.pregunta || "", o: q.opciones || [] })); break;
-    case "clasificar": { v.cols = a.categorias || []; const pal = (a.palabras || []).map(p => typeof p === "string" ? p : p.p).filter(Boolean); v.banco = seededShuffle(pal, seed); v.nfilas = Math.max(2, Math.ceil(pal.length / Math.max(1, v.cols.length)) + 1); break; }
-    case "linea_tiempo": { const ev = a.eventos || []; v.eventos = ev.map(e => ({ f: e.fecha || "", h: e.completar ? "" : (e.hecho || "") })); const hid = ev.filter(e => e.completar).map(e => e.hecho); v.banco = hid.length ? seededShuffle(hid, seed) : null; break; }
+    case "vf": v.rows = (a.items || []).map(it => ({ t: it.texto || String(it), v: it.v === true || it.v === "true" || it.v === "V" })); break;
+    case "unir": { const pares = (a.pares || []).filter(p => p && p.a && p.b); v.izq = pares.map(p => p.a); v.der = seededShuffle(pares.map(p => p.b), seed); v.ok = pares.map(p => v.der.indexOf(p.b)); break; }
+    case "ordenar": { const orig = (a.items || []).map(x => typeof x === "string" ? x : (x.texto || "")); v.rows = seededShuffle(orig, seed); v.rank = v.rows.map(r => orig.indexOf(r) + 1); break; }
+    case "completar": v.rows = (a.items || []).map(it => blankify(it.texto || it)); v.resps = (a.items || []).map(it => it.respuesta || ""); v.banco = a.banco === false ? null : seededShuffle(v.resps.filter(Boolean), seed); break;
+    case "opciones": v.qs = (a.items || []).map(q => ({ p: q.pregunta || "", o: q.opciones || [], c: parseInt(q.correcta, 10) || 0 })); break;
+    case "clasificar": { v.cols = a.categorias || []; const pal = (a.palabras || []).map(p => typeof p === "string" ? { p, c: -1 } : { p: p.p, c: parseInt(p.c, 10) }).filter(x => x.p); v.words = seededShuffle(pal, seed); v.banco = v.words.map(w => w.p); v.nfilas = Math.max(2, Math.ceil(pal.length / Math.max(1, v.cols.length)) + 1); break; }
+    case "linea_tiempo": { const ev = a.eventos || []; v.eventos = ev.map(e => ({ f: e.fecha || "", h: e.completar ? "" : (e.hecho || ""), ans: e.hecho || "" })); const hid = ev.filter(e => e.completar).map(e => e.hecho); v.banco = hid.length ? seededShuffle(hid, seed) : null; break; }
     case "tabla": v.cols = a.columnas || []; v.filas = (a.filas || []).map(r => (Array.isArray(r) ? r : []).map(c => String(c ?? ""))); break;
     default: v.formato = "abierta"; v.rows = (a.items || [a.consigna]).map(x => typeof x === "string" ? x : (x.texto || "")); v.lineas = Math.min(8, Math.max(1, parseInt(a.lineas, 10) || 3));
   }
@@ -1581,23 +1604,59 @@ function actView(a, n) {
 }
 const LETRAS = "abcdefghijklmnopqrstuvwxyz";
 function actHtml(v, idx) {
-  const box = '<span class="cbox"></span>';
-  let body = "";
-  const banco = (arr) => arr && arr.length ? `<div class="act-banco">${arr.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : "";
+  const A = `data-act="${idx}"`;
+  const banco = (arr, clickable) => arr && arr.length ? `<div class="act-banco">${arr.map(x => clickable ? `<button type="button" class="chipw">${esc(x)}</button>` : `<span>${esc(x)}</span>`).join("")}</div>` : "";
+  const sel = (opts, ok, cls) => `<select class="act-in ${cls || ""}" data-ok="${esc(ok)}"><option value="">—</option>${opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}</select>`;
+  let body = "", check = true;
   switch (v.formato) {
-    case "vf": body = `<ol class="act-list">${v.rows.map(r => `<li><span>${esc(r.t)}</span><span class="vf">V ${box} F ${box}</span></li>`).join("")}</ol>`; break;
-    case "unir": body = `<div class="act-unir"><ol>${v.izq.map(x => `<li>${esc(x)} <span class="dot">●</span></li>`).join("")}</ol><ol type="a">${v.der.map(x => `<li><span class="dot">●</span> ${esc(x)}</li>`).join("")}</ol></div>`; break;
-    case "ordenar": body = `<ul class="act-ord">${v.rows.map(x => `<li>${box}<span>${esc(x)}</span></li>`).join("")}</ul>`; break;
-    case "completar": body = banco(v.banco) + `<ol class="act-list">${v.rows.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`; break;
-    case "opciones": body = `<ol class="act-list">${v.qs.map(q => `<li><b>${esc(q.p)}</b><div class="act-opts">${q.o.map(o => `<div>${box} ${esc(o)}</div>`).join("")}</div></li>`).join("")}</ol>`; break;
-    case "clasificar": body = banco(v.banco) + `<div class="tscroll"><table class="act-tab"><thead><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${Array.from({ length: v.nfilas }, () => `<tr>${v.cols.map(() => "<td></td>").join("")}</tr>`).join("")}</tbody></table></div>`; break;
-    case "linea_tiempo": body = banco(v.banco) + `<ol class="act-linea">${v.eventos.map(e => `<li><b>${esc(e.f)}</b><span>${e.h ? esc(e.h) : '<span class="blank"></span>'}</span></li>`).join("")}</ol>`; break;
-    case "tabla": body = `<div class="tscroll"><table class="act-tab"><thead><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${v.filas.map(r => `<tr>${v.cols.map((_, k) => `<td>${esc(r[k] || "")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; break;
-    default: body = `<ol class="act-list">${v.rows.map(x => `<li>${esc(x)}${'<div class="wline"></div>'.repeat(v.lineas)}</li>`).join("")}</ol>`;
+    case "vf": check = false; body = `<ol class="act-list">${v.rows.map((r, i) => `<li><span>${esc(r.t)}</span><span class="vf"><button type="button" class="vfb" data-ok="${r.v ? 1 : 0}" data-val="1">V</button><button type="button" class="vfb" data-ok="${r.v ? 1 : 0}" data-val="0">F</button></span></li>`).join("")}</ol>`; break;
+    case "unir": body = `<p class="hint act-tip">Tocá una palabra de la izquierda y después su pareja de la derecha.</p><div class="act-unir"><ol>${v.izq.map((x, i) => `<li><button type="button" class="un-l" data-i="${i}" data-ok="${v.ok[i]}"><span class="un-tag"></span>${esc(x)}</button></li>`).join("")}</ol><ol type="a">${v.der.map((x, j) => `<li><button type="button" class="un-r" data-j="${j}"><span class="un-tag"></span>${esc(x)}</button></li>`).join("")}</ol></div>`; break;
+    case "ordenar": { const nums = v.rows.map((_, i) => String(i + 1)); body = `<ul class="act-ord">${v.rows.map((x, i) => `<li>${sel(nums, String(v.rank[i]), "num")}<span>${esc(x)}</span></li>`).join("")}</ul>`; break; }
+    case "completar": body = banco(v.banco, true) + `<ol class="act-list">${v.rows.map((x, i) => { const inp = `<input type="text" class="act-in fill" data-ok="${esc(v.resps[i])}" autocomplete="off" aria-label="Palabra que falta">`; return `<li>${/__________/.test(x) ? esc(x).replace("__________", inp) : esc(x) + " " + inp}</li>`; }).join("")}</ol>`; break;
+    case "opciones": check = false; body = `<ol class="act-list">${v.qs.map((q, i) => `<li><b>${esc(q.p)}</b><div class="act-opts">${q.o.map((o, k) => `<button type="button" class="act-opt" data-ok="${k === q.c ? 1 : 0}">${esc(o)}</button>`).join("")}</div><div class="feedback" aria-live="polite"></div></li>`).join("")}</ol>`; break;
+    case "clasificar": body = `<ul class="act-ord">${v.words.map(w => `<li><b>${esc(w.p)}</b> ${sel(v.cols, w.c >= 0 ? v.cols[w.c] || "" : "", "")}</li>`).join("")}</ul>`; break;
+    case "linea_tiempo": { const opts = v.banco || []; body = `<ol class="act-linea">${v.eventos.map(e => `<li><b>${esc(e.f)}</b><span>${e.h ? esc(e.h) : sel(opts, e.ans, "")}</span></li>`).join("")}</ol>`; if (!opts.length) check = false; break; }
+    case "tabla": check = false; body = `<div class="tscroll"><table class="act-tab"><thead><tr>${v.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${v.filas.map(r => `<tr>${v.cols.map((_, k) => `<td>${r[k] ? esc(r[k]) : '<input type="text" class="cell-in" aria-label="Completar">'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; break;
+    default: check = false; body = `<ol class="act-list">${v.rows.map(x => `<li>${esc(x)}<textarea class="act-text" rows="${v.lineas}" aria-label="Respuesta"></textarea></li>`).join("")}</ol>`;
   }
-  return `<div class="act"><h5 class="act-h">${v.picto ? `<span class="act-pic">${esc(pic({ picto: v.picto }))}</span>` : ""}Actividad ${v.n}: ${esc(v.titulo)}</h5>${v.consigna ? `<p class="act-c">${esc(v.consigna)}</p>` : ""}${body}
+  return `<div class="act" ${A} data-fmt="${v.formato}"><h5 class="act-h">${v.picto ? `<span class="act-pic">${esc(pic({ picto: v.picto }))}</span>` : ""}Actividad ${v.n}: ${esc(v.titulo)}</h5>${v.consigna ? `<p class="act-c">${esc(v.consigna)}</p>` : ""}${body}
+    ${check ? `<div class="act-check"><button type="button" class="btn small btn-revisar">Revisar</button><span class="act-res" aria-live="polite"></span></div>` : ""}
     <div class="tools-teacher act-tools">${v.solucion ? `<details><summary>Ver respuestas</summary><p>${esc(v.solucion)}</p></details>` : ""}<button type="button" class="gl-del" data-delact="${idx}">Quitar esta actividad</button></div></div>`;
 }
+/* Interacción de las actividades en pantalla */
+let lastFill = null, unSel = null;
+$("result").addEventListener("focusin", (e) => { if (e.target.matches(".fill")) lastFill = e.target; });
+$("result").addEventListener("click", (e) => {
+  const t = e.target;
+  const vf = t.closest(".vfb");
+  if (vf) { const li = vf.closest("li"); li.querySelectorAll(".vfb").forEach(b => b.classList.remove("ok", "no", "on")); vf.classList.add("on", vf.dataset.val === vf.dataset.ok ? "ok" : "no"); return; }
+  const op = t.closest(".act-opt");
+  if (op) { const li = op.closest("li"); li.querySelectorAll(".act-opt").forEach(b => b.classList.remove("ok", "no")); const r = op.dataset.ok === "1"; op.classList.add(r ? "ok" : "no"); li.querySelector(".feedback").textContent = r ? "¡Muy bien!" : "Casi. Probá otra vez."; return; }
+  const chip = t.closest(".chipw");
+  if (chip) { const act = chip.closest(".act"); const inp = (lastFill && act.contains(lastFill)) ? lastFill : [...act.querySelectorAll(".fill")].find(x => !x.value); if (inp) { inp.value = chip.textContent; inp.classList.remove("ok", "no"); const nx = [...act.querySelectorAll(".fill")].find(x => !x.value); if (nx) { nx.focus(); lastFill = nx; } } return; }
+  const ul = t.closest(".un-l");
+  if (ul) { const act = ul.closest(".act"); act.querySelectorAll(".un-l").forEach(b => b.classList.remove("sel")); ul.classList.add("sel"); unSel = ul; return; }
+  const ur = t.closest(".un-r");
+  if (ur) {
+    const act = ur.closest(".act"); if (!unSel || !act.contains(unSel)) { const st = act.querySelector(".act-res"); if (st) st.textContent = "Primero tocá una palabra de la izquierda."; return; }
+    const i = +unSel.dataset.i, j = +ur.dataset.j;
+    act.querySelectorAll(".un-l").forEach(b => { if (b.dataset.pair === String(j)) { delete b.dataset.pair; b.querySelector(".un-tag").textContent = ""; } });
+    act.querySelectorAll(".un-r").forEach(b => { if (b.dataset.pair === String(i)) { delete b.dataset.pair; b.querySelector(".un-tag").textContent = ""; } });
+    unSel.dataset.pair = j; unSel.querySelector(".un-tag").textContent = LETRAS[j] + ")";
+    ur.dataset.pair = i; ur.querySelector(".un-tag").textContent = (i + 1) + ".";
+    act.querySelectorAll(".un-l, .un-r").forEach(b => b.classList.remove("ok", "no"));
+    unSel.classList.remove("sel"); unSel = null; return;
+  }
+  const rv = t.closest(".btn-revisar");
+  if (rv) {
+    const act = rv.closest(".act"); let ok = 0, tot = 0;
+    if (act.dataset.fmt === "unir") act.querySelectorAll(".un-l").forEach(b => { tot++; const good = b.dataset.pair === b.dataset.ok; if (good) ok++; b.classList.remove("ok", "no"); if (b.dataset.pair !== undefined) b.classList.add(good ? "ok" : "no"); });
+    else act.querySelectorAll(".act-in").forEach(x => { tot++; const good = x.value && norm(x.value) === norm(x.dataset.ok); if (good) ok++; x.classList.remove("ok", "no"); if (x.value) x.classList.add(good ? "ok" : "no"); });
+    act.querySelector(".act-res").textContent = ok === tot ? `¡Muy bien! ${ok} de ${tot} correctas.` : `${ok} de ${tot} correctas. Revisá las marcadas en rojo y probá otra vez.`;
+  }
+});
+$("result").addEventListener("input", (e) => { if (e.target.matches(".act-in")) e.target.classList.remove("ok", "no"); });
+$("result").addEventListener("change", (e) => { if (e.target.matches("select.act-in")) e.target.classList.remove("ok", "no"); });
 function actsSection(d) {
   const acts = d.actividades || [];
   const grupo = actGrupo(d.materia), sug = ACT_GRUPOS[grupo];
