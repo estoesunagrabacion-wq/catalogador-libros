@@ -1,0 +1,1556 @@
+<title>Adaptador de Lectura Fácil</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1F4F5C">
+<meta name="apple-mobile-web-app-title" content="Lectura Fácil">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lexend:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: app de una columna pensada para el celular (barra superior, tarjeta "Nuevo texto", resultado con pictograma a la izquierda de cada frase); en pantalla ancha, dos columnas. */
+:root {
+  --bg: #F3F4F2;
+  --surface: #FFFFFF;
+  --surface-2: #EEF0ED;
+  --ink: #1A1D21;
+  --muted: #5C636B;
+  --line: #DADED9;
+  --accent: #1F4F5C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E3ECEE;
+  --sun: #F2DE96;
+  --sun-ink: #1A1D21;
+  --picto-bg: transparent;
+  --ok: #24704A; --ok-soft: #E2F1E8;
+  --bad: #A23A2A; --bad-soft: #F8E5E1;
+  --note: #FBF5E3; --note-line: #E3D6A8;
+  --shadow: 0 1px 2px rgba(20,30,35,.05), 0 8px 24px rgba(20,30,35,.06);
+  --f-ui: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-read: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --f-head: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --read-size: 1.25rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121518; --surface: #1A1E22; --surface-2: #22272C; --ink: #E7EAED; --muted: #9AA3AC; --line: #30363C;
+    --accent: #86BCC8; --accent-ink: #0E1215; --accent-soft: #1C2C31; --sun: #5E4F18; --sun-ink: #FFF4CC;
+    --picto-bg: transparent; --ok: #6FC495; --ok-soft: #16302A; --bad: #EF9180; --bad-soft: #3A1E19;
+    --note: #25220F; --note-line: #4A4322; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121518; --surface: #1A1E22; --surface-2: #22272C; --ink: #E7EAED; --muted: #9AA3AC; --line: #30363C;
+  --accent: #86BCC8; --accent-ink: #0E1215; --accent-soft: #1C2C31; --sun: #5E4F18; --sun-ink: #FFF4CC;
+  --picto-bg: transparent; --ok: #6FC495; --ok-soft: #16302A; --bad: #EF9180; --bad-soft: #3A1E19;
+  --note: #25220F; --note-line: #4A4322; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 56px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 18px; }
+
+.student-box { background: var(--surface-2); border-radius: 14px; padding: 14px; display: grid; gap: 12px; }
+.sb-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sb-pick { display: flex; gap: 6px; align-items: center; flex: 1 1 200px; justify-content: flex-end; }
+.sb-pick select { width: auto; max-width: 100%; min-width: 0; flex: 1 1 auto; padding: 8px 10px; background: var(--surface); }
+.student-box select, .student-box input, .student-box textarea { background: var(--surface); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 420px) { .two { grid-template-columns: minmax(0, 1fr); } }
+input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pistas { margin-top: 12px; background: var(--accent-soft); border-radius: 12px; padding: 12px 16px; font-size: 0.92em; }
+.pistas ol { margin: 4px 0 0; padding-left: 1.3em; display: grid; gap: 4px; }
+
+[hidden] { display: none !important; }
+.gl-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-family: var(--f-ui); font-size: 0.9rem; }
+.gl-add input { flex: 1 1 180px; width: auto; min-width: 0; font-size: 0.95rem; }
+.gl-del { display: block; margin-top: 6px; background: none; border: 0; padding: 0; color: var(--muted); font-family: var(--f-ui); font-size: 0.75rem; text-decoration: underline; cursor: pointer; }
+.hbox { background: var(--surface-2); border-radius: 14px; padding: 12px 16px; }
+.hbox summary { cursor: pointer; font-weight: 600; }
+.hbox[open] summary { margin-bottom: 10px; }
+.faq { margin: 0; display: grid; gap: 4px; }
+.faq dt { font-weight: 600; margin-top: 6px; }
+.faq dd { margin: 0; color: var(--ink); }
+.oref { font-family: var(--f-ui); font-size: 0.62em; color: var(--muted); margin: 6px 0 -6px calc(3.4em + 14px); }
+.nopicto .oref, .poem .oref { margin-left: 0; }
+.editing [contenteditable] { outline: 1.5px dashed var(--line); outline-offset: 2px; border-radius: 4px; cursor: text; }
+.editing [contenteditable]:focus { outline: 2px solid var(--accent); }
+.editing [contenteditable]:empty::before { content: "(vacío)"; color: var(--muted); }
+.edit-banner { font-family: var(--f-ui); font-size: 0.85rem; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 12px; }
+.ed-del { background: none; border: 0; padding: 0; margin-top: 4px; color: var(--bad); font-family: var(--f-ui); font-size: 0.75rem; text-decoration: underline; cursor: pointer; }
+.ed-add { margin-top: 10px; font-family: var(--f-ui); }
+.picto-btn { border: 1.5px dashed var(--accent); color: var(--accent); cursor: pointer; padding: 0; }
+.emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
+.emoji-grid button { font-family: var(--f-emoji); font-size: 1.5rem; padding: 6px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.sheet-in.wide { max-width: 760px; }
+.pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
+.pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
+.pages figcaption { font-size: 0.8rem; color: var(--muted); }
+.pages.spreads canvas { max-width: 100%; }
+.pages canvas { width: 100%; max-width: 420px; height: auto; background: #fff; border-radius: 4px; box-shadow: var(--shadow); }
+
+/* Barra superior */
+.appbar { display: flex; align-items: center; gap: 12px; padding-block: 6px; }
+.logo { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.logo svg { width: 26px; height: 26px; }
+.brand { flex: 1; min-width: 0; }
+.brand b { display: block; font-size: 1.15rem; line-height: 1.2; }
+.brand span { color: var(--muted); font-size: 0.82rem; }
+.iconbtn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: inherit; font-weight: 500; font-size: 0.88rem; cursor: pointer; }
+.iconbtn svg { width: 18px; height: 18px; }
+@media (max-width: 520px) { .iconbtn .lbl { display: none; } .iconbtn { padding: 10px; } .brand span { display: none; } .appbar { gap: 8px; } }
+
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 16px; min-width: 0; }
+.card-title { font-size: 1.05rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.field-label { font-weight: 500; display: block; margin-bottom: 8px; }
+.hint { color: var(--muted); font-size: 0.84rem; font-weight: 400; }
+textarea, select {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+}
+textarea { resize: vertical; min-height: 180px; font-family: var(--f-read); font-size: 1rem; line-height: 1.55; }
+textarea#notas { min-height: 80px; font-family: var(--f-ui); font-size: 0.92rem; }
+textarea:focus, select:focus { border-color: var(--accent); outline: none; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Selector de nivel tipo "segmentos" */
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface-2); border-radius: 14px; padding: 4px; gap: 4px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { margin: 0; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; display: grid; gap: 1px; }
+.seg label b { font-weight: 600; font-size: 0.92rem; }
+.seg label span { font-size: 0.72rem; color: var(--muted); }
+.seg input:checked + label { background: var(--surface); box-shadow: var(--shadow); }
+.seg input:checked + label b { color: var(--accent); }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); }
+
+/* Chips de opciones */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips input { position: absolute; opacity: 0; pointer-events: none; }
+.chips label { margin: 0; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1.5px solid var(--line); cursor: pointer; font-size: 0.9rem; user-select: none; }
+.chips label .em { font-family: var(--f-emoji); }
+.chips input:checked + label { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 500; }
+.chips input:checked + label::after { content: "✓"; color: var(--accent); font-weight: 700; }
+.chips input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+details.more { border-top: 1px solid var(--line); padding-top: 12px; }
+details.more summary { cursor: pointer; font-weight: 500; list-style: none; display: flex; justify-content: space-between; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::after { content: "＋"; color: var(--muted); }
+details.more[open] summary::after { content: "－"; }
+
+button { font: inherit; cursor: pointer; }
+.btn { border-radius: 12px; padding: 10px 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 500; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 14px 20px; font-size: 1.02rem; width: 100%; }
+.btn.small { padding: 7px 12px; font-size: 0.85rem; border-radius: 999px; }
+.actions { display: grid; gap: 8px; }
+.status { font-size: 0.9rem; color: var(--muted); min-height: 1.4em; display: flex; gap: 10px; align-items: center; }
+.status.err { color: var(--bad); }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--accent-soft); border-top-color: var(--accent); flex: none; }
+@media (prefers-reduced-motion: no-preference) { .spinner { animation: spin 0.9s linear infinite; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Resultado */
+.out-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.badge { font-size: 0.72rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: var(--sun); color: var(--sun-ink); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.reading { font-family: var(--f-read); font-size: var(--read-size); line-height: 1.7; display: grid; gap: 26px; }
+.reading h3 { font-family: var(--f-head); font-size: 1.6em; line-height: 1.2; margin: 0; text-wrap: balance; }
+.reading h4 { font-family: var(--f-head); font-size: 1.05em; margin: 0 0 12px; color: var(--accent); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-wrap: balance; }
+.summary { background: var(--accent-soft); border-radius: 14px; padding: 16px 18px; font-weight: 700; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; align-items: center; }
+.lf { display: grid; gap: 14px; }
+.lf-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); gap: 14px; align-items: start; }
+.lf-row p { margin: 0; padding-top: 0.15em; }
+.picto { width: 3.4em; height: 3.4em; border-radius: 0.6em; background: var(--picto-bg); display: grid; place-items: center; font-family: var(--f-emoji); font-size: 1em; line-height: 1; }
+.picto span { font-size: 1.9em; }
+.nopicto .lf-row { grid-template-columns: minmax(0,1fr); }
+.nopicto .picto, .nopicto .summary .picto { display: none; }
+.nopicto .summary { grid-template-columns: minmax(0,1fr); }
+mark { background: var(--sun); color: var(--sun-ink); padding: 0 .2em; border-radius: .2em; font-weight: 700; }
+.box { background: var(--surface-2); border-radius: 16px; padding: 18px; }
+.byline { margin: 6px 0 0; color: var(--muted); font-style: italic; font-size: 0.85em; }
+.kicker { display: block; font-family: var(--f-ui); font-size: 0.68em; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); font-weight: 600; }
+.summary:has(.kicker) { font-weight: 400; }
+.poem .lf { gap: 6px; }
+.poem .lf-row { grid-template-columns: 2.4em minmax(0,1fr); align-items: center; }
+.poem .picto { width: 2.4em; height: 2.4em; }
+.poem .picto span { font-size: 1.4em; }
+.poem section { padding-left: 0; }
+.poem-sp { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.pcard { background: var(--surface); border-radius: 14px; padding: 14px; display: grid; grid-template-columns: 3.4em minmax(0,1fr); gap: 12px; align-items: start; }
+.pcard b { display: block; }
+.pcard .ej { color: var(--muted); font-style: italic; font-size: 0.9em; margin-top: 4px; }
+.nopicto .pcard { grid-template-columns: minmax(0,1fr); }
+.ideas { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.ideas li { display: grid; grid-template-columns: 1.6em minmax(0,1fr); gap: 8px; }
+.ideas li::before { content: "✔"; color: var(--accent); font-weight: 700; }
+.quiz { display: grid; gap: 20px; }
+.q p { font-weight: 700; margin: 0 0 10px; }
+.opts { display: grid; gap: 8px; }
+.opts button { text-align: left; font-family: var(--f-read); font-size: 0.95em; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
+.opts button.ok { background: var(--ok-soft); border-color: var(--ok); }
+.opts button.no { background: var(--bad-soft); border-color: var(--bad); }
+.feedback { font-size: 0.9em; margin-top: 8px; }
+.teacher { background: var(--note); border: 1px solid var(--note-line); border-radius: 14px; padding: 14px 16px; font-size: 0.9rem; margin-top: 22px; }
+.teacher h5 { margin: 0 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; }
+.teacher ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+
+/* Paneles (Mis textos / Instalar) */
+.sheet { position: fixed; inset: 0; z-index: 20; background: rgba(20,16,40,.45); display: grid; align-items: end; justify-items: center; }
+.sheet-in { background: var(--surface); color: var(--ink); width: 100%; max-width: 560px; max-height: 85vh; overflow: auto; border-radius: 22px 22px 0 0; padding: 20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
+@media (min-width: 700px) { .sheet { align-items: center; } .sheet-in { border-radius: 22px; } }
+.sheet-in h2 { margin: 0; font-size: 1.15rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; }
+.osbox { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; }
+.osbox b { font-size: 0.95rem; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hist button { width: 100%; text-align: left; background: var(--surface-2); border: 0; border-radius: 12px; padding: 12px 14px; color: var(--ink); display: grid; gap: 2px; }
+.hist small { color: var(--muted); }
+
+/* Vista para la alumna */
+body.student .panel-in, body.student .teacher, body.student .tools-teacher, body.student .brand span { display: none !important; }
+body.student .grid { grid-template-columns: minmax(0, 1fr); }
+body.student .panel-out { max-width: 860px; margin: 0 auto; width: 100%; }
+.size-ctl { display: none; gap: 6px; }
+body.student .size-ctl { display: flex; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chips label, .seg label { transition: background .15s, border-color .15s, box-shadow .15s; } }
+
+/* ===== Capa editorial: aspecto sobrio, mismas medidas de legibilidad ===== */
+body { font-size: 16px; }
+.card { border-radius: 10px; box-shadow: none; border: 1px solid var(--line); padding: 22px; }
+.card-title { font-family: var(--f-head); font-weight: 600; font-size: 1.2rem; letter-spacing: -0.005em; }
+.logo { width: 40px; height: 40px; border-radius: 8px; }
+.logo svg path { stroke: #fff; fill: #fff; }
+.logo svg path + path { fill: none; }
+.brand b { font-family: var(--f-head); font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; }
+.iconbtn { border-radius: 8px; background: transparent; font-weight: 600; }
+.iconbtn:hover { border-color: var(--accent); }
+textarea, select, input[type="text"] { border-radius: 8px; border-width: 1px; }
+.student-box { border: 1px solid var(--line); }
+.seg { border-radius: 8px; padding: 3px; gap: 3px; }
+.seg label { border-radius: 6px; }
+.seg input:checked + label { box-shadow: none; outline: 1px solid var(--line); }
+.chips label { border-radius: 6px; border-width: 1px; }
+.btn { border-radius: 8px; border-width: 1px; font-weight: 600; }
+.btn.small { border-radius: 6px; }
+.badge { background: var(--accent-soft); color: var(--accent); border-radius: 4px; }
+.field-label { font-weight: 600; }
+
+.reading { gap: 30px; }
+.reading h3 { font-weight: 700; font-size: 1.9em; letter-spacing: -0.015em; line-height: 1.15; }
+.byline { font-family: var(--f-head); font-size: 0.9em; margin-top: 8px; }
+.reading section { border-top: 1px solid var(--line); padding-top: 1.1em; }
+.reading h4 { font-weight: 600; font-size: 1.15em; color: var(--ink); margin-bottom: 14px; }
+.kicker { font-family: var(--f-ui); font-size: 0.66em; letter-spacing: .12em; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.summary { background: var(--accent-soft); border-radius: 0 6px 6px 0; border-left: 3px solid var(--accent); padding: 14px 18px; }
+.lf { gap: 16px; }
+.lf-row { grid-template-columns: 3em minmax(0, 1fr); gap: 16px; }
+.picto { width: 3em; height: 3em; border-radius: 0.45em; border: 1px solid var(--line); background: var(--surface); }
+.picto span { font-size: 1.6em; }
+.poem .picto { border: 0; }
+.oref { margin-left: calc(3em + 16px); font-size: 0.6em; letter-spacing: .02em; font-style: italic; }
+mark { background: linear-gradient(transparent 52%, var(--sun) 52%, var(--sun) 92%, transparent 92%); color: inherit; font-weight: 700; padding: 0 .08em; border-radius: 0; }
+.box { background: transparent; border-top: 1px solid var(--line); border-radius: 0; padding: 1.1em 0 0; }
+.box h4 { color: var(--ink); }
+.cards { gap: 10px; }
+.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; grid-template-columns: 3em minmax(0,1fr); }
+.pistas { border-radius: 0 6px 6px 0; border-left: 3px solid var(--accent); }
+.ideas li::before { content: "—"; font-weight: 400; }
+.opts button { border-radius: 8px; border-width: 1px; }
+.teacher { border-radius: 8px; }
+.sheet { background: rgba(14,20,24,.45); }
+.sheet-in { border-radius: 14px 14px 0 0; }
+@media (min-width: 700px) { .sheet-in { border-radius: 14px; } }
+.sheet-in h2 { font-family: var(--f-head); font-weight: 600; font-size: 1.3rem; }
+.hbox, .osbox, .student-box, .pages { border-radius: 8px; }
+.pages canvas { border-radius: 2px; }
+body.student .reading { max-width: 36em; margin: 0 auto; }
+</style>
+
+<div class="wrap">
+  <header class="appbar">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#FFD966" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5C4.5 4 7.5 4 12 6c4.5-2 7.5-2 10-.5V19c-2.5-1.5-5.5-1.5-10 .5-4.5-2-7.5-2-10-.5Z" fill="#FFD966" fill-opacity=".18"/><path d="M12 6v13.5"/></svg>
+    </div>
+    <div class="brand"><b>Lectura Fácil</b><span>Textos adaptados para cada estudiante</span></div>
+    <button class="iconbtn" id="btn-hist" type="button" aria-label="Mis textos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="lbl">Mis textos</span></button>
+    <button class="iconbtn" id="btn-help" type="button" aria-label="Ayuda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17h.01"/></svg><span class="lbl">Ayuda</span></button>
+    <button class="iconbtn" id="btn-install" type="button" aria-label="Instalar en el celular"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v7m-3-3 3 3 3-3"/></svg><span class="lbl">Instalar</span></button>
+    <button class="iconbtn" id="btn-student" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span class="lbl" id="lbl-student">Vista alumna</span></button>
+  </header>
+
+  <div class="grid">
+    <section class="card panel-in" aria-labelledby="h-in">
+      <div class="student-box">
+        <div class="sb-head">
+          <h2 class="card-title" id="h-est">Estudiante</h2>
+          <div class="sb-pick">
+            <label class="sr" for="perfil">Elegir estudiante</label>
+            <select id="perfil"></select>
+            <button class="btn small" id="btn-new-prof" type="button">+ Nuevo</button>
+          </div>
+        </div>
+        <div class="two">
+          <div>
+            <label class="field-label" for="p-curso">Curso</label>
+            <select id="p-curso"></select>
+          </div>
+          <div>
+            <label class="field-label" for="p-nivel">Lee como en</label>
+            <select id="p-nivel"></select>
+          </div>
+        </div>
+        <details class="more">
+          <summary>Nombre y notas</summary>
+          <div style="display:grid;gap:12px;margin-top:10px">
+            <div>
+              <label class="field-label" for="p-alias">Nombre o apodo <span class="hint">(solo para reconocerlo en esta lista; no se envía)</span></label>
+              <input type="text" id="p-alias" placeholder="Ej.: Estudiante de 5.º B">
+            </div>
+            <div>
+              <label class="field-label" for="notas">Qué le ayuda y qué le cuesta</label>
+              <textarea id="notas" placeholder="Ej.: entiende mejor con ejemplos de la vida diaria; le cuestan las fechas; se cansa con párrafos largos."></textarea>
+            </div>
+            <div><button class="btn small" id="btn-del-prof" type="button">Borrar este estudiante</button> <span class="hint" id="del-confirm" hidden>Toca otra vez para confirmar.</span></div>
+          </div>
+        </details>
+        <p class="hint" style="margin:0">Los datos de cada estudiante se guardan solo en este dispositivo.</p>
+      </div>
+
+      <h2 class="card-title" id="h-in">Nuevo texto</h2>
+      <div class="two">
+        <div>
+          <label class="field-label" for="materia">Materia</label>
+          <select id="materia">
+            <option>Comunicación / Literatura</option>
+            <option>Matemática</option>
+            <option>Ciencia y Tecnología</option>
+            <option>Ciencias Sociales / Historia / Geografía</option>
+            <option>Desarrollo Personal, Ciudadanía y Cívica</option>
+            <option>Educación Religiosa</option>
+            <option>Arte y Cultura</option>
+            <option>Educación para el Trabajo</option>
+            <option>Educación Física</option>
+            <option>Otra</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="tipo">Tipo de texto</label>
+          <select id="tipo">
+            <option value="narrativo">Cuento, relato o novela</option>
+            <option value="poema">Poema</option>
+            <option value="informativo">Texto del libro o explicación</option>
+            <option value="problemas">Problemas o ejercicios</option>
+            <option value="consignas">Consignas, tarea o examen</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="tipo-hint" style="margin:-6px 0 0"></p>
+      <div>
+        <label class="field-label" for="original">Pega aquí el texto</label>
+        <textarea id="original" placeholder="Copia el texto del libro, de la ficha o de internet y pégalo aquí."></textarea>
+      </div>
+      <div>
+        <span class="field-label" id="lbl-nivel">¿Cuánto simplificar?</span>
+        <div class="seg" role="radiogroup" aria-labelledby="lbl-nivel">
+          <input type="radio" name="nivel" id="n1" value="leve"><label for="n1"><b>Poco</b><span>frases de 20 palabras</span></label>
+          <input type="radio" name="nivel" id="n2" value="medio" checked><label for="n2"><b>Medio</b><span>frases de 15 palabras</span></label>
+          <input type="radio" name="nivel" id="n3" value="muy"><label for="n3"><b>Mucho</b><span>frases de 10 palabras</span></label>
+        </div>
+      </div>
+      <div>
+        <span class="field-label" id="lbl-incluir">Incluir</span>
+        <div class="chips" role="group" aria-labelledby="lbl-incluir">
+          <input type="checkbox" id="c-pictos" checked><label for="c-pictos"><span class="em">🖼️</span> Pictogramas</label>
+          <input type="checkbox" id="c-glosario" checked><label for="c-glosario"><span class="em">📒</span> Glosario</label>
+          <input type="checkbox" id="c-guia" checked><label for="c-guia"><span class="em">🧭</span> Guía del original</label>
+          <input type="checkbox" id="c-personajes"><label for="c-personajes"><span class="em">🎭</span> Personajes</label>
+          <input type="checkbox" id="c-ideas"><label for="c-ideas"><span class="em">💡</span> Lo más importante</label>
+          <input type="checkbox" id="c-preguntas"><label for="c-preguntas"><span class="em">❓</span> Preguntas</label>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btn-go" type="button">Adaptar texto</button>
+        <button class="btn" id="btn-stop" type="button" hidden>Detener</button>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <button class="btn primary" id="btn-perm" type="button" hidden>Dar permiso</button>
+        <button class="btn" id="help-cta" type="button" hidden>¿Cómo hago que funcione?</button>
+        <p class="hint" id="diag" hidden style="margin:0;font-size:.78rem"></p>
+      </div>
+    </section>
+
+    
+<section class="card panel-out" aria-labelledby="h-out">
+      <div class="out-head">
+        <h2 class="card-title" id="h-out">Texto adaptado <span class="badge" id="badge">Ejemplo</span></h2>
+        <div class="toolbar">
+          <div class="size-ctl"><button class="btn small" id="btn-smaller" type="button" aria-label="Letra más pequeña">A−</button><button class="btn small" id="btn-bigger" type="button" aria-label="Letra más grande">A+</button></div>
+          <button class="btn small" id="btn-read-all" type="button">🔊 Escuchar</button>
+          <span class="tools-teacher" style="display:contents">
+            <button class="btn small" id="btn-edit" type="button">✏️ Editar</button>
+            <button class="btn small" id="btn-print" type="button">📄 Imprimir</button>
+            <button class="btn small" id="btn-copy" type="button">Copiar</button>
+            <button class="btn small" id="btn-doc" type="button" hidden>Descargar Word</button>
+          </span>
+        </div>
+      </div>
+      <div id="result"></div>
+    </section>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-install" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-install">
+    <h2 id="h-install">Tenerla en el celular <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p class="hint" style="margin:0">Abre este mismo enlace en el celular, con tu cuenta de Claude iniciada, y añádelo a la pantalla de inicio. Quedará un ícono como el de una app.</p>
+    <div class="osbox"><b>Android (Chrome)</b>
+      <ol class="steps"><li>Abre el enlace en Chrome.</li><li>Toca el menú <b>⋮</b> (arriba a la derecha).</li><li>Elige <b>Añadir a pantalla de inicio</b> y luego <b>Añadir</b>.</li></ol></div>
+    <div class="osbox"><b>iPhone (Safari)</b>
+      <ol class="steps"><li>Abre el enlace en Safari.</li><li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elige <b>Agregar a inicio</b> y luego <b>Agregar</b>.</li></ol></div>
+    <div class="osbox"><b>En la app de Claude</b>
+      <p style="margin:0">También puedes abrirla desde la app de Claude, en la sección de artefactos. Si la fijas, aparece siempre arriba.</p></div>
+    <div class="osbox"><b>Enlace para copiar</b>
+      <p style="margin:0;word-break:break-all;user-select:all" id="page-link">https://claude.ai/artifact/TuAXtS8wJKRVgVUtL4ePrE</p>
+      <div><button class="btn small" type="button" id="btn-copy-link">Copiar enlace</button></div></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-hist" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-hist">
+    <h2 id="h-hist">Mis textos <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p class="hint" style="margin:0">Las últimas adaptaciones hechas en este dispositivo. Para guardarlas para siempre, descárgalas en Word.</p>
+    <ul class="hist" id="hist-list"></ul>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-help" hidden>
+  <div class="sheet-in wide" role="dialog" aria-modal="true" aria-labelledby="h-help">
+    <h2 id="h-help">Cómo usar Lectura Fácil <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p style="margin:0">Esta aplicación adapta textos de clase a <b>Lectura Fácil</b> para cada estudiante, con pictogramas, glosario y versión A5 para imprimir. La adaptación la hace Claude, una inteligencia artificial.</p>
+
+    <details class="hbox" open><summary>1. Qué necesitas</summary>
+      <ul class="steps">
+        <li>Una <b>cuenta de Claude</b>, gratuita o de pago. Se crea en <b>claude.ai</b> con un correo.</li>
+        <li><b>Iniciar sesión</b> en ese navegador o en la app de Claude, en cada dispositivo donde la uses.</li>
+        <li>El <b>enlace</b> de esta aplicación (te lo comparte quien la creó).</li>
+        <li>La primera vez que pulses «Adaptar texto», Claude te pregunta si permites que la aplicación lo use. Elige <b>Permitir</b>.</li>
+      </ul>
+      <p class="hint" style="margin:8px 0 0">Cada docente usa su propia cuenta. Las adaptaciones cuentan para el uso de tu cuenta; la cuenta gratuita tiene un límite diario.</p>
+    </details>
+
+    <details class="hbox"><summary>2. Primeros pasos</summary>
+      <ol class="steps">
+        <li>En <b>Estudiante</b>, elige el curso y cómo lee. Con «+ Nuevo» puedes crear un perfil para cada estudiante.</li>
+        <li>Elige la <b>materia</b> y el <b>tipo de texto</b> (cuento, poema, texto del libro, problemas o consignas).</li>
+        <li>Pega el texto y elige cuánto simplificar.</li>
+        <li>Pulsa <b>Adaptar texto</b> y espera entre 20 segundos y 2 minutos.</li>
+        <li>Lee el recuadro amarillo <b>Para revisar</b>: dice qué se cambió.</li>
+        <li>Para corregir algo, pulsa <b>✏️ Editar</b>, toca el texto y cámbialo. Tocando un pictograma puedes elegir otro. Al terminar, pulsa <b>✓ Listo</b>.</li>
+        <li>Si falta una palabra en el glosario, escríbela y pulsa <b>+ Agregar al glosario</b>.</li>
+        <li>Con <b>Guía del original</b> activada, cada parte muestra de qué párrafo del texto original sale y sus primeras palabras («Original ¶3: …»), para seguir la lectura junto con la clase.</li>
+        <li>Usa <b>Vista alumna</b> para que lo lea en pantalla, <b>📄 Imprimir</b> para el PDF en A5 o en cuadernillo, o <b>Descargar Word</b> para editarlo.</li>
+      </ol>
+    </details>
+
+    <details class="hbox"><summary>3. Usarla en el celular o en otra computadora</summary>
+      <ol class="steps">
+        <li>Abre el mismo enlace en el otro dispositivo.</li>
+        <li>Inicia sesión en Claude con <b>tu</b> cuenta.</li>
+        <li>Para tener un ícono como el de una app:
+          <br><b>Android (Chrome):</b> menú ⋮ → <i>Añadir a pantalla de inicio</i>.
+          <br><b>iPhone (Safari):</b> botón Compartir → <i>Agregar a inicio</i>.</li>
+        <li>Tus estudiantes y textos guardados <b>no se pasan solos</b> de un dispositivo a otro. Usa la sección 5 para llevarlos.</li>
+      </ol>
+      <p style="margin:8px 0 0;word-break:break-all"><span class="hint">Enlace:</span> <span style="user-select:all" id="help-link">https://claude.ai/artifact/TuAXtS8wJKRVgVUtL4ePrE</span> <button class="btn small" type="button" id="btn-copy-link2">Copiar enlace</button></p>
+    </details>
+
+    <details class="hbox"><summary>4. Si algo no funciona</summary>
+      <dl class="faq">
+        <dt>El botón «Adaptar texto» está gris</dt><dd>No hay sesión de Claude en este navegador, o la página se abrió fuera de Claude. Inicia sesión en claude.ai y vuelve a abrir el enlace.</dd>
+        <dt>Dice «No se dio permiso» o «no tiene permiso»</dt><dd>Pulsa el botón <b>Dar permiso</b> y activa Claude. Si no aparece, busca el menú <b>Permisos</b> de la página en la barra de Claude, arriba.</dd>
+        <dt>Dice «Claude no está disponible en esta ventana»</dt><dd>No uses ventana privada o de incógnito. Desactiva el bloqueo de cookies o los bloqueadores de anuncios para claude.ai, o prueba en Chrome o Edge.</dd>
+        <dt>Aparece una línea «Diagnóstico…»</dt><dd>Si no logras que funcione, copia esa línea y envíasela a quien te compartió la aplicación.</dd>
+        <dt>Dice que se hicieron muchas adaptaciones</dt><dd>Llegaste al límite de uso de tu cuenta por un rato. Espera y vuelve a intentarlo.</dd>
+        <dt>«La respuesta llegó incompleta»</dt><dd>El texto es muy largo. Adáptalo en dos o tres partes.</dd>
+        <dt>No se descarga el PDF o el Word</dt><dd>Aparece una ventana para confirmar la descarga: acéptala. En el celular, el archivo queda en «Descargas».</dd>
+        <dt>No encuentro mis estudiantes o textos</dt><dd>Se guardan en cada dispositivo y navegador. Si borraste los datos del navegador o cambiaste de dispositivo, impórtalos (sección 5).</dd>
+      </dl>
+    </details>
+
+    <details class="hbox"><summary>5. Llevar mis datos a otro dispositivo</summary>
+      <p style="margin:0 0 8px">En este dispositivo, pulsa <b>Copiar mis datos</b> y envíate el texto (por WhatsApp o correo). En el otro dispositivo, pégalo abajo y pulsa <b>Importar</b>.</p>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" type="button" id="btn-export">Copiar mis datos</button></div>
+      <label class="field-label" for="import-box" style="margin-top:10px">Pegar datos de otro dispositivo</label>
+      <textarea id="import-box" style="min-height:70px;font-family:var(--f-ui);font-size:.85rem" placeholder="Pega aquí el texto copiado"></textarea>
+      <div style="margin-top:8px"><button class="btn small" type="button" id="btn-import">Importar</button> <span class="hint" id="import-status" role="status" aria-live="polite"></span></div>
+    </details>
+
+    <details class="hbox"><summary>6. Compartir con otros docentes</summary>
+      <ol class="steps">
+        <li>Quien creó la aplicación pulsa <b>Compartir</b>, en la barra de Claude arriba de la página.</li>
+        <li>Puede invitar por correo o crear un enlace y enviarlo.</li>
+        <li>Cada docente necesita su propia cuenta de Claude (sección 1). Lo que guarda cada uno no lo ven los demás.</li>
+      </ol>
+    </details>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-picto" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-picto">
+    <h2 id="h-picto">Cambiar pictograma <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <div>
+      <label class="field-label" for="emoji-input">O escribe otro emoji <span class="hint">(en el celular, usa el teclado de emojis)</span></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="emoji-input" style="flex:1 1 120px;width:auto;font-size:1.4rem"><button class="btn small" type="button" id="emoji-ok">Usar este</button><button class="btn small" type="button" id="emoji-none">Sin pictograma</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-print" hidden>
+  <div class="sheet-in wide" role="dialog" aria-modal="true" aria-labelledby="h-print">
+    <h2 id="h-print">Imprimir <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <div class="two">
+      <div>
+        <label class="field-label" for="pr-formato">Formato</label>
+        <select id="pr-formato"><option value="a5">A5, una página por hoja</option><option value="cuadernillo">Cuadernillo en A4 (doblar al medio)</option></select>
+      </div>
+      <div>
+        <label class="field-label" for="pr-color">Color</label>
+        <select id="pr-color"><option value="bw">Blanco y negro</option><option value="color">Color</option></select>
+      </div>
+      <div>
+        <label class="field-label" for="pr-font">Tipografía</label>
+        <select id="pr-font"><option value="sobria">Sobria (Source Sans y Source Serif)</option><option value="legible">Muy legible (Atkinson Hyperlegible)</option></select>
+      </div>
+      <div>
+        <label class="field-label" for="pr-size">Tamaño de letra</label>
+        <select id="pr-size"><option value="14">Normal (14 pt)</option><option value="16">Grande (16 pt)</option><option value="12">Pequeña (12 pt)</option></select>
+      </div>
+      <div>
+        <label class="field-label" for="pr-glosa">Glosario</label>
+        <select id="pr-glosa"><option value="pie">Al pie de cada página</option><option value="margen">En el margen</option><option value="final">Todo al final</option></select>
+      </div>
+    </div>
+    <button class="btn primary" id="btn-pdf" type="button">Descargar PDF A5</button>
+    <p class="hint" id="pr-status" style="margin:0" role="status" aria-live="polite"></p>
+    <p class="hint" style="margin:0" id="pr-hint"></p>
+    <div class="pages" id="pr-pages"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const EXAMPLE_TEXT = "";
+
+const EXAMPLE = {
+  tipo: "narrativo",
+  titulo: "La tortuga gigante",
+  autor: "Horacio Quiroga (versión de Lectura Fácil)",
+  antes_de_leer: { texto: "Este cuento pasa en la selva de Sudamérica, hace muchos años. No había autos ni aviones, y la ciudad quedaba muy lejos.", picto: "🌳" },
+  personajes: [],
+  secciones: [
+    { subtitulo: "Un hombre enfermo", parrafos: [
+      { texto: "Había una vez un hombre que vivía en Buenos Aires. Estaba sano y trabajaba mucho. Un día se enfermó.", picto: "🤒" },
+      { texto: "Los médicos le dijeron: —Tienes que irte al campo. Allí te vas a curar.", picto: "🩺" },
+      { texto: "El hombre se fue a vivir solo a la **selva**. Cazaba animales para comer y dormía al aire libre.", picto: "🏕️" }
+    ]},
+    { subtitulo: "La tortuga herida", parrafos: [
+      { texto: "Un día el hombre vio a un tigre. El tigre atacaba a una tortuga gigante.", picto: "🐅" },
+      { texto: "El hombre espantó al tigre con su escopeta. La tortuga estaba muy herida.", picto: "🐢" },
+      { texto: "El hombre la cuidó. Le curó las heridas con trapos y agua. Después de muchos días, la tortuga se curó.", picto: "🩹" }
+    ]},
+    { subtitulo: "Ahora el enfermo es el hombre", parrafos: [
+      { texto: "Entonces el hombre se enfermó otra vez. Tenía mucha **fiebre**. No podía levantarse.", picto: "🌡️" },
+      { texto: "La tortuga pensó: —El hombre me salvó la vida. Ahora yo lo voy a salvar a él.", picto: "💭" }
+    ]}
+  ],
+  glosario: [
+    { palabra: "Selva", significado: "Lugar muy grande con muchos árboles, plantas y animales salvajes.", ejemplo: "La selva del Amazonas.", picto: "🌴" },
+    { palabra: "Fiebre", significado: "Cuando el cuerpo está muy caliente porque está enfermo.", ejemplo: "Tengo fiebre, me duele todo.", picto: "🌡️" }
+  ],
+  ideas_clave: [],
+  preguntas: [],
+  notas_docente: [
+    "Ejemplo corto: muestra solo el comienzo del cuento.",
+    "Se cambiaron «Misiones» y «Ministerio» por «la selva» y «los médicos». Si se trabajan en clase, conviene explicarlos."
+  ]
+};
+
+const $ = (id) => document.getElementById(id);
+let current = EXAMPLE, currentShowPictos = true;
+let sample = null, downloads = null, ctl = null;
+const canSpeak = "speechSynthesis" in window;
+const seg = (typeof Intl !== "undefined" && Intl.Segmenter) ? new Intl.Segmenter("es", { granularity: "grapheme" }) : null;
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function rich(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<mark>$1</mark>"); }
+function plain(s) { return String(s ?? "").replace(/\*\*(.+?)\*\*/g, "$1"); }
+function txt(p) { return typeof p === "string" ? p : (p?.texto ?? ""); }
+function pic(p) {
+  const raw = String((typeof p === "object" && p?.picto) || "").trim();
+  if (!raw) return "";
+  const first = seg ? (seg.segment(raw)[Symbol.iterator]().next().value?.segment || "") : Array.from(raw)[0];
+  return /\p{Extended_Pictographic}/u.test(first) ? first : "";
+}
+function pictoEl(p, key) { const e = pic(p); if (editing && key) return `<button type="button" class="picto picto-btn" data-pic="${key}" aria-label="Cambiar pictograma">${e ? `<span>${e}</span>` : "＋"}</button>`; return `<div class="picto" aria-hidden="true">${e ? `<span>${e}</span>` : ""}</div>`; }
+
+function speak(text) {
+  if (!canSpeak) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-ES"; u.rate = 0.9;
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+let editing = false;
+function refLabel(d, p) {
+  const n = p && typeof p === "object" ? parseInt(p.orig, 10) : 0;
+  if (!n || !d.orig_refs || !d.orig_refs[n]) return "";
+  return `Original ¶${n}: «${d.orig_refs[n]}…»`;
+}
+function render(d, isExample, showPictos) {
+  current = d; currentShowPictos = showPictos;
+  $("badge").hidden = !isExample;
+  $("btn-edit").textContent = editing ? "✓ Listo" : "✏️ Editar";
+  const poem = d.tipo === "poema", E = editing ? ' contenteditable="true" spellcheck="true"' : "";
+  const o = [];
+  o.push(`<div class="reading${showPictos ? "" : " nopicto"}${poem ? " poem" : ""}${editing ? " editing" : ""}">`);
+  if (editing) o.push(`<div class="edit-banner">Modo edición: toca cualquier texto para corregirlo y toca un pictograma para cambiarlo. Los cambios se guardan solos. Para resaltar una palabra difícil, agrégala abajo en «Palabras importantes».</div>`);
+  o.push(`<div><h3 data-ed="titulo"${E}>${esc(d.titulo)}</h3>${d.autor || editing ? `<p class="byline" data-ed="autor"${E}>${esc(d.autor || "")}</p>` : ""}</div>`);
+  if (d.antes_de_leer && (txt(d.antes_de_leer) || editing)) o.push(`<div class="summary">${pictoEl(d.antes_de_leer, "antes")}<div><small class="kicker">Antes de leer</small><span data-ed="antes"${E}>${rich(txt(d.antes_de_leer))}</span></div></div>`);
+  if (d.en_una_frase && txt(d.en_una_frase)) o.push(`<div class="summary">${pictoEl(d.en_una_frase, "frase")}<div data-ed="frase"${E}>${rich(txt(d.en_una_frase))}</div></div>`);
+  if (d.personajes?.length) {
+    o.push(`<div class="box"><h4>Los personajes</h4><div class="cards">${d.personajes.map((c, k) =>
+      `<div class="pcard">${pictoEl(c, "pers." + k)}<div><b>${esc(c.nombre)}</b><span data-ed="pers.${k}"${E}>${esc(c.descripcion)}</span></div></div>`).join("")}</div></div>`);
+  }
+  let lastRef = "";
+  (d.secciones || []).forEach((s, i) => {
+    const sp = canSpeak && !editing ? ` <button class="btn small" type="button" data-speak="${i}" aria-label="Escuchar esta parte">🔊</button>` : "";
+    o.push(`<section>${s.subtitulo || editing ? `<h4><span data-ed="sub.${i}"${E}>${esc(s.subtitulo || "")}</span>${sp}</h4>` : (sp ? `<div class="poem-sp">${sp}</div>` : "")}<div class="lf">`);
+    (s.parrafos || []).forEach((p, j) => {
+      const r = refLabel(d, p);
+      if (r && r !== lastRef) { o.push(`<div class="oref">${esc(r)}</div>`); lastRef = r; }
+      o.push(`<div class="lf-row">${pictoEl(p, `p.${i}.${j}`)}<div class="ptext"><p data-ed="p.${i}.${j}"${E}>${rich(txt(p))}</p>${editing ? `<button class="ed-del" type="button" data-delp="${i}.${j}">Borrar párrafo</button>` : ""}</div></div>`);
+    });
+    o.push(`</div>`);
+    if (editing) o.push(`<button class="btn small ed-add" type="button" data-addp="${i}">+ Agregar párrafo</button>`);
+    if (s.pistas?.length) o.push(`<div class="pistas"><small class="kicker">Pistas</small><ol>${s.pistas.map(x => `<li>${rich(txt(x))}</li>`).join("")}</ol></div>`);
+    o.push(`</section>`);
+  });
+  {
+    const gl = d.glosario || [];
+    o.push(`<div class="box${gl.length ? "" : " tools-teacher"}"><h4>Palabras importantes</h4>${gl.length ? `<div class="cards">${gl.map((g, gi) =>
+      `<div class="pcard">${pictoEl(g, "g." + gi)}<div><b><mark>${esc(g.palabra)}</mark></b><span data-ed="g.${gi}"${E}>${esc(g.significado)}</span>${g.ejemplo ? `<div class="ej">Ejemplo: <span data-ed="ge.${gi}"${E}>${esc(g.ejemplo)}</span></div>` : ""}<button class="gl-del tools-teacher" type="button" data-delgl="${gi}" aria-label="Quitar ${esc(g.palabra)} del glosario">Quitar</button></div></div>`).join("")}</div>` : ""}
+      <form class="gl-add tools-teacher" id="gl-add"><label class="sr" for="gl-word">Palabra para agregar al glosario</label><input type="text" id="gl-word" placeholder="¿Falta alguna? Ej.: yunque" autocomplete="off"><button class="btn small" type="submit">+ Agregar al glosario</button></form>
+      <p class="hint tools-teacher" id="gl-status" role="status" aria-live="polite" style="margin:6px 0 0"></p></div>`);
+  }
+  if (d.ideas_clave?.length) o.push(`<div class="box"><h4>Lo más importante</h4><ul class="ideas">${d.ideas_clave.map(x => `<li><span>${rich(txt(x))}</span></li>`).join("")}</ul></div>`);
+  if (d.preguntas?.length) {
+    o.push(`<div class="box"><h4>¿Lo entendiste?</h4><div class="quiz">${d.preguntas.map((q, qi) =>
+      `<div class="q"><p>${qi + 1}. ${esc(q.pregunta)}</p><div class="opts">${(q.opciones || []).map((op, oi) =>
+        `<button type="button" data-q="${qi}" data-o="${oi}">${esc(op)}</button>`).join("")}</div><div class="feedback" aria-live="polite"></div></div>`).join("")}</div></div>`);
+  }
+  o.push(`</div>`);
+  if (d.notas_docente?.length) o.push(`<div class="teacher"><h5>Para revisar (solo docente)</h5><ul>${d.notas_docente.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`);
+  $("result").innerHTML = o.join("");
+  $("btn-read-all").hidden = !canSpeak;
+}
+
+/* Edición */
+function serializeEd(el) {
+  let out = "";
+  el.childNodes.forEach(n => {
+    if (n.nodeType === 3) out += n.textContent;
+    else if (n.nodeName === "MARK") out += "**" + n.textContent + "**";
+    else if (n.nodeName === "BR") out += " ";
+    else if (n.nodeType === 1) out += serializeEd(n);
+  });
+  return out;
+}
+function edObj(key) {
+  const k = key.split("."), d = current;
+  const asObj = (arr, idx) => { if (typeof arr[idx] === "string") arr[idx] = { texto: arr[idx], picto: "" }; return arr[idx]; };
+  switch (k[0]) {
+    case "antes": return d.antes_de_leer;
+    case "frase": return d.en_una_frase;
+    case "pers": return d.personajes[+k[1]];
+    case "g": return d.glosario[+k[1]];
+    case "p": return asObj(d.secciones[+k[1]].parrafos, +k[2]);
+  }
+  return null;
+}
+function setEd(key, val) {
+  const k = key.split("."), d = current;
+  val = val.replace(/\s+/g, " ").replace(/\*\*\s*\*\*/g, "").trim();
+  if (k[0] === "titulo") d.titulo = val;
+  else if (k[0] === "autor") d.autor = val;
+  else if (k[0] === "sub") d.secciones[+k[1]].subtitulo = val;
+  else if (k[0] === "pers") d.personajes[+k[1]].descripcion = val;
+  else if (k[0] === "g") d.glosario[+k[1]].significado = val;
+  else if (k[0] === "ge") d.glosario[+k[1]].ejemplo = val;
+  else { const ob = edObj(key); if (ob) ob.texto = val; }
+}
+let edTimer = null;
+$("result").addEventListener("input", (e) => {
+  const el = e.target.closest("[data-ed]"); if (!el || !editing) return;
+  setEd(el.dataset.ed, serializeEd(el));
+  clearTimeout(edTimer); edTimer = setTimeout(updateHist, 600);
+});
+$("result").addEventListener("paste", (e) => {
+  if (!e.target.closest("[data-ed]")) return;
+  e.preventDefault();
+  const t = (e.clipboardData || window.clipboardData).getData("text/plain").replace(/\s+/g, " ");
+  document.execCommand("insertText", false, t);
+});
+$("result").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.closest("[data-ed]")) { e.preventDefault(); e.target.closest("[data-ed]").blur(); }
+});
+$("btn-edit").onclick = () => {
+  editing = !editing;
+  render(current, $("badge").hidden === false, currentShowPictos);
+  if (!editing) updateHist();
+};
+$("result").addEventListener("click", (e) => {
+  const del = e.target.closest("[data-delp]");
+  if (del) { const [i, j] = del.dataset.delp.split(".").map(Number); current.secciones[i].parrafos.splice(j, 1); render(current, $("badge").hidden === false, currentShowPictos); updateHist(); return; }
+  const add = e.target.closest("[data-addp]");
+  if (add) {
+    const i = +add.dataset.addp; current.secciones[i].parrafos.push({ texto: "Escribe aquí el nuevo párrafo.", picto: "" });
+    render(current, $("badge").hidden === false, currentShowPictos); updateHist();
+    const ps = document.querySelectorAll(`[data-ed^="p.${i}."]`); const last = ps[ps.length - 1];
+    if (last) { last.focus(); try { const r = document.createRange(); r.selectNodeContents(last); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch (_) {} }
+    return;
+  }
+  const pb = e.target.closest("[data-pic]");
+  if (pb) { pickKey = pb.dataset.pic; $("emoji-input").value = pic(edObj(pickKey)) || ""; openSheet("sheet-picto"); }
+});
+let pickKey = null;
+const EMOJIS = "👤 👦 👧 👨 👩 👴 👵 👶 🧑‍🏫 🧑‍🌾 💂 🪖 👮 👨‍👩‍👧 🗣️ 💬 🤔 😊 😢 😡 😨 😴 🤒 ❤️ 💔 🏠 🏫 🏰 ⛪ 🏙️ 🌳 🌾 🌊 ⛰️ 🏜️ ☀️ 🌙 🌧️ ❄️ 🔥 🍞 🍽️ 💧 💰 📖 ✍️ ✉️ 📅 ⏰ 🚶 🏃 🐴 🚂 ⚓ ⚔️ 🔫 💣 🛡️ 🔨 🕊️ 🎉 ⚖️ 🔑 🚪 💀 🙏".split(" ");
+function setPicto(v) {
+  const ob = edObj(pickKey); if (!ob) return;
+  ob.picto = v; closeSheets(); render(current, $("badge").hidden === false, currentShowPictos); updateHist();
+}
+$("emoji-grid").innerHTML = EMOJIS.map(x => `<button type="button" data-emo="${x}" aria-label="${x}">${x}</button>`).join("");
+$("emoji-grid").addEventListener("click", (e) => { const b = e.target.closest("[data-emo]"); if (b) setPicto(b.dataset.emo); });
+$("emoji-ok").onclick = () => { const v = $("emoji-input").value.trim(); setPicto(v ? (seg ? seg.segment(v)[Symbol.iterator]().next().value.segment : Array.from(v)[0]) : ""); };
+$("emoji-none").onclick = () => setPicto("");
+
+$("result").addEventListener("click", (e) => {
+  const sp = e.target.closest("[data-speak]");
+  if (sp) { const s = current.secciones[+sp.dataset.speak]; speak((s.subtitulo ? s.subtitulo + ". " : "") + s.parrafos.map(p => plain(txt(p))).join(" ")); return; }
+  const b = e.target.closest("button[data-o]");
+  if (!b) return;
+  const q = current.preguntas[+b.dataset.q];
+  const box = b.closest(".q");
+  box.querySelectorAll("button").forEach(x => x.classList.remove("ok", "no"));
+  const right = +b.dataset.o === +q.correcta;
+  b.classList.add(right ? "ok" : "no");
+  box.querySelector(".feedback").textContent = right ? "¡Muy bien! " + (q.explicacion || "") : "Casi. Inténtalo otra vez.";
+});
+
+function fullText(d) {
+  const L = [d.titulo];
+  if (d.autor) L.push(d.autor);
+  L.push("");
+  if (d.antes_de_leer && txt(d.antes_de_leer)) L.push("Antes de leer: " + plain(txt(d.antes_de_leer)), "");
+  if (d.en_una_frase && txt(d.en_una_frase)) L.push(plain(txt(d.en_una_frase)), "");
+  if (d.personajes?.length) { L.push("Los personajes"); d.personajes.forEach(c => L.push(`• ${c.nombre}: ${c.descripcion}`)); L.push(""); }
+  (d.secciones || []).forEach(s => { if (s.subtitulo) L.push(s.subtitulo); s.parrafos.forEach(p => { const r = refLabel(d, p); if (r && r !== L._r) { L.push(`[${r}]`); L._r = r; } L.push(`${currentShowPictos && pic(p) ? pic(p) + " " : ""}${plain(txt(p))}`); }); if (s.pistas?.length) { L.push("Pistas:"); s.pistas.forEach((x, k) => L.push(`  ${k + 1}. ${plain(txt(x))}`)); } L.push(""); });
+  if (d.glosario?.length) { L.push("Palabras importantes"); d.glosario.forEach(g => L.push(`• ${g.palabra}: ${g.significado}${g.ejemplo ? " Ejemplo: " + g.ejemplo : ""}`)); L.push(""); }
+  if (d.ideas_clave?.length) { L.push("Lo más importante"); d.ideas_clave.forEach(x => L.push("• " + plain(txt(x)))); L.push(""); }
+  if (d.preguntas?.length) { L.push("¿Lo entendiste?"); d.preguntas.forEach((q, i) => { L.push(`${i + 1}. ${q.pregunta}`); (q.opciones || []).forEach((op, j) => L.push(`   ${"abcde"[j] || "-"}) ${op}`)); }); }
+  return L.join("\n");
+}
+
+function docHtml(d) {
+  const P = (p) => currentShowPictos && pic(p) ? `<td style="font-size:30pt;width:60pt;vertical-align:top">${pic(p)}</td>` : "";
+  let docRef = "";
+  let h = `<html><head><meta charset="utf-8"><style>body{font-family:"Source Sans 3",Calibri,Arial,sans-serif;font-size:16pt;line-height:1.6;color:#1A1D21}h1{font-family:Georgia,serif;font-size:26pt;margin-bottom:0}h2{font-family:Georgia,serif;font-size:18pt;color:#1F4F5C}mark{background:#F2DE96;font-weight:bold}td{padding:4pt 8pt 8pt 0;font-size:16pt}.res{background:#E9F0F1;border-left:3pt solid #1F4F5C;padding:8pt}</style></head><body>`;
+  h += `<h1>${esc(d.titulo)}</h1>${d.autor ? `<p><i>${esc(d.autor)}</i></p>` : ""}`;
+  if (d.antes_de_leer && txt(d.antes_de_leer)) h += `<p class="res"><b>Antes de leer:</b> ${rich(txt(d.antes_de_leer))}</p>`;
+  if (d.en_una_frase && txt(d.en_una_frase)) h += `<p class="res"><b>${rich(txt(d.en_una_frase))}</b></p>`;
+  if (d.personajes?.length) h += `<h2>Los personajes</h2><table>${d.personajes.map(c => `<tr>${P(c)}<td><b>${esc(c.nombre)}</b>: ${esc(c.descripcion)}</td></tr>`).join("")}</table>`;
+  (d.secciones || []).forEach(s => { h += (s.subtitulo ? `<h2>${esc(s.subtitulo)}</h2>` : "<br>") + `<table>` + s.parrafos.map(p => { const r = refLabel(d, p); const row = (r && r !== docRef) ? `<tr><td colspan="2" style="font-size:10pt;color:#555"><i>${esc(r)}</i></td></tr>` : ""; if (r) docRef = r; return row + `<tr>${P(p)}<td>${rich(txt(p))}</td></tr>`; }).join("") + `</table>` + (s.pistas?.length ? `<p><b>Pistas:</b></p><ol>${s.pistas.map(x => `<li>${rich(txt(x))}</li>`).join("")}</ol>` : ""); });
+  if (d.glosario?.length) h += `<h2>Palabras importantes</h2><table>${d.glosario.map(g => `<tr>${P(g)}<td><mark>${esc(g.palabra)}</mark>: ${esc(g.significado)}${g.ejemplo ? `<br><i>Ejemplo: ${esc(g.ejemplo)}</i>` : ""}</td></tr>`).join("")}</table>`;
+  if (d.ideas_clave?.length) h += `<h2>Lo más importante</h2><ul>${d.ideas_clave.map(x => `<li>${rich(txt(x))}</li>`).join("")}</ul>`;
+  if (d.preguntas?.length) h += `<h2>¿Lo entendiste?</h2>${d.preguntas.map((q, i) => `<p><b>${i + 1}. ${esc(q.pregunta)}</b><br>${(q.opciones || []).map(op => `☐ ${esc(op)}`).join("<br>")}</p>`).join("")}`;
+  return h + `</body></html>`;
+}
+
+const NIVELES = {
+  leve: "SIMPLIFICACIÓN POCA: frases de 20 palabras como máximo. Puedes conservar bastante vocabulario del original si se entiende por el contexto. Hasta 4 frases por párrafo.",
+  medio: "SIMPLIFICACIÓN MEDIA: frases de 15 palabras como máximo, una sola idea o acción por frase. Cambia por palabras comunes las palabras difíciles que no son importantes. 1 a 3 frases por párrafo.",
+  muy: "SIMPLIFICACIÓN MUCHA: frases de 10 palabras como máximo, una sola idea o acción por frase. Solo vocabulario muy común. Puedes acortar descripciones, pero sin perder lo esencial. 1 o 2 frases por párrafo."
+};
+
+const GRADOS = [
+  ["1pri", "1.º de primaria", "6-7"], ["2pri", "2.º de primaria", "7-8"], ["3pri", "3.º de primaria", "8-9"],
+  ["4pri", "4.º de primaria", "9-10"], ["5pri", "5.º de primaria", "10-11"], ["6pri", "6.º de primaria", "11-12"],
+  ["1sec", "1.º de secundaria", "12-13"], ["2sec", "2.º de secundaria", "13-14"], ["3sec", "3.º de secundaria", "14-15"],
+  ["4sec", "4.º de secundaria", "15-16"], ["5sec", "5.º de secundaria", "16-17"]
+];
+const grado = (k) => GRADOS.find(g => g[0] === k) || GRADOS[10];
+
+const TIPO_HINTS = {
+  narrativo: "Escribe el mismo cuento con palabras más fáciles, para leerlo junto con sus compañeros.",
+  poema: "Escribe el mismo poema en versos más sencillos.",
+  informativo: "Reescribe el tema del libro ordenado y fácil de entender.",
+  problemas: "Simplifica los enunciados y conserva todos los datos. Agrega pistas, sin dar la respuesta.",
+  consignas: "Escribe las instrucciones paso a paso, con palabras claras."
+};
+
+function opts() {
+  return {
+    tipo: $("tipo").value, materia: $("materia").value,
+    nivel: document.querySelector('input[name="nivel"]:checked').value,
+    curso: $("p-curso").value, lee: $("p-nivel").value,
+    pictos: $("c-pictos").checked, glos: $("c-glosario").checked, pers: $("c-personajes").checked,
+    ideas: $("c-ideas").checked, preg: $("c-preguntas").checked, notas: $("notas").value.trim(), guia: $("c-guia").checked
+  };
+}
+
+const TAREAS = {
+  narrativo: `TAREA: escribe una VERSIÓN DE LECTURA FÁCIL DEL MISMO CUENTO O RELATO. El estudiante la va a leer en clase al mismo tiempo que sus compañeros leen el original. Por eso:
+- Debe SEGUIR SIENDO UN TEXTO NARRATIVO: un narrador que cuenta, personajes que hacen cosas y hablan. Es el mismo cuento contado con palabras más fáciles.
+- NO expliques el cuento. NO agregues análisis, comentarios, datos del autor, contexto ni moralejas dentro del texto.
+- Mantén TODOS los hechos importantes, en el mismo orden, con los mismos personajes y nombres, el mismo lugar y el mismo final. No cambies ni suavices el final.
+- Mantén el mismo narrador (primera o tercera persona) y el tiempo pasado.
+- Conserva el ambiente y las emociones con palabras sencillas.
+- Conserva los diálogos importantes, simplificados, con raya (—), diciendo quién habla.
+- Si hay recuerdos o saltos en el tiempo, avísalos con frases claras ("Antes, hace muchos años…", "Ahora…").
+- Di siempre quién hace cada cosa; repite el nombre en lugar de "él" o "ella" si puede haber confusión.
+- Divide en partes cortas con un subtítulo simple que NO adelante lo que va a pasar.
+- Si hace falta saber algo del lugar o la época, escríbelo en 1 o 2 frases en "antes_de_leer", fuera del cuento.
+- CONSERVA las palabras propias del cuento que sus compañeros van a leer y comentar (objetos, oficios, lugares, palabras de época o regionales, apodos), aunque sean difíciles. No las reemplaces: márcalas con ** y explícalas en el glosario.`,
+  poema: `TAREA: escribe una VERSIÓN DE LECTURA FÁCIL DEL MISMO POEMA para leerlo en clase junto con sus compañeros.
+- Debe seguir siendo un poema: versos cortos y estrofas, en el mismo orden y con las mismas imágenes principales.
+- Cambia las palabras difíciles y las metáforas complejas por versos simples y concretos. No hace falta rima.
+- No agregues comentarios dentro del poema.
+- Cada estrofa es una sección (subtitulo ""), y cada verso es un elemento de "parrafos".
+- En "antes_de_leer" escribe en 1 o 2 frases simples de qué habla el poema.`,
+  informativo: `TAREA: reescribe el texto informativo o explicativo para que el estudiante lo entienda, manteniendo los contenidos que se trabajan en la clase.
+- Ordena la información: primero lo general, después los detalles. Si hay una secuencia (un proceso, hechos históricos), respeta el orden.
+- Divide en secciones con subtítulos cortos (pueden ser preguntas: "¿Qué es…?", "¿Por qué pasó…?").
+- Explica cada concepto abstracto con un ejemplo de la vida diaria.
+- Conserva los términos propios de la materia que son contenido de la clase, márcalos y llévalos al glosario.
+- En "en_una_frase" resume todo el tema en una frase muy simple.`,
+  problemas: `TAREA: adapta los PROBLEMAS o EJERCICIOS para que el estudiante entienda qué se le pide y pueda resolverlos.
+- Cada problema o ejercicio es una sección; el subtítulo es "Problema 1", "Problema 2", etc. (o el número original).
+- Conserva EXACTAMENTE todos los números, datos, unidades y la pregunta. No cambies la dificultad matemática ni el resultado.
+- Reescribe el enunciado en frases cortas: primero la situación, después los datos (uno por frase), al final la pregunta.
+- Quita información que no sirve para resolverlo solo si es claramente decorativa.
+- NO resuelvas el problema ni des la respuesta.
+- En "pistas" de cada sección escribe 2 a 4 pasos o preguntas guía cortas para empezar ("Primero, mira cuántos…"), sin dar el resultado.`,
+  consignas: `TAREA: adapta las CONSIGNAS (instrucciones de una tarea, práctica o examen) para que el estudiante sepa exactamente qué tiene que hacer.
+- Conserva todas las actividades y lo que se evalúa. No hagas las actividades ni des respuestas.
+- Cada actividad es una sección con un subtítulo corto ("Actividad 1").
+- Escribe cada instrucción como un paso con un verbo de acción al inicio ("Lee…", "Subraya…", "Escribe…"). Un paso por párrafo.
+- Si una consigna pide algo abstracto ("argumenta", "analiza", "infiere"), explica con palabras simples qué tiene que hacer.
+- En "pistas" de cada sección puedes poner 1 a 3 ayudas cortas (por ejemplo, cómo empezar la respuesta), sin dar la respuesta.`
+};
+
+const MATERIAS = {
+  "Matemática": "En Matemática, conserva siempre los números, signos, unidades y fórmulas tal como están. Escribe los números con cifras.",
+  "Ciencia y Tecnología": "En Ciencia, conserva los conceptos científicos correctos; explícalos con ejemplos cotidianos y respeta el orden de los procesos.",
+  "Ciencias Sociales / Historia / Geografía": "En Historia, ordena los hechos en el tiempo, escribe los años con cifras y explica los siglos si aparecen.",
+  "Comunicación / Literatura": "En Literatura, los términos de la materia (narrador, verso, metáfora, género…) van al glosario con un ejemplo cotidiano."
+};
+
+function buildPrompt(texto, o) {
+  const g = grado(o.curso), l = grado(o.lee);
+  const narr = o.tipo === "narrativo" || o.tipo === "poema";
+  const pistas = o.tipo === "problemas" || o.tipo === "consignas";
+  return `Eres especialista en adaptación de textos a Lectura Fácil para educación inclusiva.
+
+ESTUDIANTE: cursa ${g[1]} (${g[2]} años). ${o.curso === o.lee ? "Lee al nivel de su curso, pero necesita textos más claros y ordenados." : `Su nivel de comprensión lectora es aproximadamente de ${l[1]} (${l[2]} años).`}
+${o.notas ? "NOTAS DE LA DOCENTE SOBRE EL ESTUDIANTE: " + o.notas + "\n" : ""}MATERIA: ${o.materia}.
+${MATERIAS[o.materia] ? MATERIAS[o.materia] + "\n" : ""}
+${TAREAS[o.tipo]}
+
+REGLAS DE LECTURA FÁCIL:
+- ${NIVELES[o.nivel]}
+- Usa vocabulario que entienda alguien que lee como en ${l[1]}, pero mantén los contenidos de ${g[1]}: el texto es más fácil, no de otro curso.
+- El tono corresponde a su edad (${g[2]} años): claro y directo${parseInt(g[2]) >= 11 ? ", nunca infantil. Nada de diminutivos ni exclamaciones del tipo \"¡Qué divertido!\"" : ", cercano y amable"}.
+- Mantén los datos correctos. No inventes información que no esté en el texto, salvo ejemplos cotidianos para explicar.
+- Palabras frecuentes, voz activa, frases en orden simple (quién + qué hace). Evita dobles negaciones, paréntesis y oraciones largas con muchas comas.
+- Números y años en cifras.
+- Marca con **doble asterisco** las palabras del glosario la primera vez que aparecen, escritas igual que en el glosario (puede ser en plural). No uses otro formato.
+
+GLOSARIO: revisa el texto palabra por palabra y lleva al glosario TODAS las palabras que probablemente no conozca alguien que lee como en ${l[1]}: objetos poco comunes, oficios, cargos militares, lugares, gentilicios, palabras antiguas, regionales o extranjeras, y términos de la materia. Es mejor que sobren a que falten. Normalmente son entre 5 y 20, según el largo del texto. Cada una debe aparecer marcada en tu versión.
+
+PICTOGRAMAS: cada párrafo${o.tipo === "poema" ? " (verso)" : ""}, cada personaje y cada palabra del glosario llevan un campo "picto" con UN SOLO emoji que represente lo más concreto de esa frase (una persona, un objeto, una acción, una emoción). Evita banderas y emojis ambiguos.
+
+${o.numbered ? `PÁRRAFOS DEL ORIGINAL: el texto original tiene sus párrafos numerados entre corchetes: [1], [2], [3]… En cada párrafo de tu versión, pon en "orig" el número del párrafo original del que sale ese contenido (si junta varios, el primero). Respeta el orden del original. No escribas los números ni los corchetes dentro del texto.\n\n` : ""}RESPONDE SOLO con un objeto JSON con esta forma exacta:
+{
+  "titulo": "el título original, o uno corto y claro si no tiene",
+  "autor": "autor o autora si es una obra literaria; si no, \\"\\"",
+  "antes_de_leer": ${narr ? '{"texto": "1 o 2 frases (o \\"\\" si no hace falta)", "picto": "emoji"}' : "null"},
+  "en_una_frase": ${o.tipo === "informativo" ? '{"texto": "resumen en una frase muy simple", "picto": "emoji"}' : "null"},
+  "personajes": ${o.pers && o.tipo === "narrativo" ? '[{"nombre": "", "descripcion": "1 frase simple: quién es. Sin adelantar lo que le pasa", "picto": "emoji"}]' : "[]"},
+  "secciones": [{"subtitulo": "string", "parrafos": [{"texto": "string", "picto": "emoji"${o.numbered ? ', "orig": 1' : ""}}]${pistas ? ', "pistas": ["string"]' : ""}}],
+  "glosario": ${o.glos ? '[{"palabra": "", "significado": "explicación muy simple", "ejemplo": "ejemplo cotidiano corto", "picto": "emoji"}] (todas las necesarias)' : "[]"},
+  "ideas_clave": ${o.ideas ? '["3 a 5 frases cortas con lo más importante"]' : "[]"},
+  "preguntas": ${o.preg ? '[{"pregunta": "", "opciones": ["3 opciones cortas"], "correcta": 0, "explicacion": "por qué, en una frase"}] (3 a 5 preguntas sencillas de comprensión; "correcta" es el índice empezando en 0; varía su posición)' : "[]"},
+  "notas_docente": ["para la docente, breve: qué partes acortaste o cambiaste, qué palabras quitaste y qué conviene preparar o repasar"]
+}
+
+TEXTO ORIGINAL:
+"""
+${texto.slice(0, 60000)}
+"""`;
+}
+
+/* Perfiles de estudiante (solo en este dispositivo) */
+const PKEY = "lf-perfiles", AKEY = "lf-perfil-activo";
+let perfiles = [], activo = null;
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function nuevoPerfil(n) { return { id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), alias: "Estudiante " + n, curso: "5sec", lee: "5pri", notas: "" }; }
+function guardarPerfiles() { lsSet(PKEY, JSON.stringify(perfiles)); lsSet(AKEY, activo); }
+function perfilActual() { return perfiles.find(p => p.id === activo) || perfiles[0]; }
+function pintarPerfiles() {
+  $("perfil").innerHTML = perfiles.map(p => `<option value="${p.id}">${esc(p.alias || "Sin nombre")}</option>`).join("");
+  $("perfil").value = activo;
+  const p = perfilActual();
+  $("p-curso").value = p.curso; $("p-nivel").value = p.lee; $("p-alias").value = p.alias; $("notas").value = p.notas;
+  $("btn-del-prof").hidden = perfiles.length < 2;
+}
+function initPerfiles() {
+  const opt = GRADOS.map(g => `<option value="${g[0]}">${g[1]}</option>`).join("");
+  $("p-curso").innerHTML = opt; $("p-nivel").innerHTML = opt;
+  try { perfiles = JSON.parse(lsGet(PKEY) || "[]"); } catch (e) { perfiles = []; }
+  if (!Array.isArray(perfiles) || !perfiles.length) {
+    const p = nuevoPerfil(1); p.notas = lsGet("lf-notas") || ""; perfiles = [p];
+  }
+  activo = lsGet(AKEY);
+  if (!perfiles.some(p => p.id === activo)) activo = perfiles[0].id;
+  pintarPerfiles();
+}
+function actualizarPerfil() {
+  const p = perfilActual();
+  p.curso = $("p-curso").value; p.lee = $("p-nivel").value; p.alias = $("p-alias").value.trim() || p.alias; p.notas = $("notas").value;
+  guardarPerfiles();
+  $("perfil").querySelector(`option[value="${p.id}"]`).textContent = p.alias;
+}
+["p-curso", "p-nivel", "p-alias", "notas"].forEach(id => $(id).addEventListener(id === "p-alias" || id === "notas" ? "input" : "change", actualizarPerfil));
+$("perfil").addEventListener("change", () => { activo = $("perfil").value; guardarPerfiles(); pintarPerfiles(); });
+$("btn-new-prof").onclick = () => {
+  const p = nuevoPerfil(perfiles.length + 1); perfiles.push(p); activo = p.id; guardarPerfiles(); pintarPerfiles();
+  document.querySelector(".student-box details").open = true; $("p-alias").select();
+};
+let delArmed = false;
+$("btn-del-prof").onclick = () => {
+  if (!delArmed) { delArmed = true; $("del-confirm").hidden = false; setTimeout(() => { delArmed = false; $("del-confirm").hidden = true; }, 4000); return; }
+  delArmed = false; $("del-confirm").hidden = true;
+  perfiles = perfiles.filter(p => p.id !== activo); activo = perfiles[0].id; guardarPerfiles(); pintarPerfiles();
+};
+function tipoHint() { $("tipo-hint").textContent = TIPO_HINTS[$("tipo").value] || ""; lsSet("lf-tipo", $("tipo").value); lsSet("lf-materia", $("materia").value); }
+$("tipo").addEventListener("change", tipoHint);
+$("materia").addEventListener("change", tipoHint);
+
+const ERRORS = {
+  not_granted: "No se dio permiso para usar Claude en esta página. Vuelve a abrirla y acepta el permiso para poder adaptar textos.",
+  sampling_disabled: "Claude no está disponible para esta cuenta.",
+  rate_limited: "Se hicieron muchas adaptaciones seguidas o se alcanzó el límite de uso. Espera unos minutos y vuelve a intentarlo.",
+  session_expired: "Tu sesión de Claude caducó. Vuelve a iniciar sesión y prueba otra vez.",
+  prompt_too_large: "El texto es demasiado largo. Adáptalo por partes, por ejemplo de a una página.",
+  invalid_json: "La respuesta llegó incompleta. Pulsa «Adaptar texto» otra vez; si se repite, prueba con un texto más corto.",
+  refused: "Claude no pudo adaptar este texto. Prueba con otro fragmento.",
+  empty_completion: "No llegó ninguna respuesta. Prueba con un texto más corto.",
+};
+
+function setBusy(b) { $("btn-go").disabled = b; $("btn-stop").hidden = !b; }
+function setStatus(msg, kind) {
+  $("status").className = "status" + (kind === "err" ? " err" : "");
+  $("status").innerHTML = (kind === "busy" ? '<span class="spinner" aria-hidden="true"></span>' : "") + `<span>${esc(msg)}</span>`;
+}
+
+
+function splitOriginal(t) {
+  const blocks = t.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
+  if (blocks.length >= 2) return blocks.map(b => b.replace(/\s*\n\s*/g, " "));
+  const parts = []; let cur = "";
+  t.split(/\n/).map(x => x.trim()).filter(Boolean).forEach(l => { cur = cur ? cur + " " + l : l; if (/[.!?…:»"”)]$/.test(l)) { parts.push(cur); cur = ""; } });
+  if (cur) parts.push(cur);
+  return parts;
+}
+async function adapt() {
+  const texto = $("original").value.trim();
+  if (!texto) { setStatus("Pega un texto antes de adaptar.", "err"); return; }
+  const o = opts();
+  ctl = new AbortController();
+  setBusy(true);
+  setStatus("Leyendo y adaptando el texto… suele tardar entre 20 segundos y 1 minuto.", "busy");
+  try {
+    const paras = splitOriginal(texto);
+    o.numbered = o.guia && paras.length > 1;
+    const src = o.numbered ? paras.map((t, k) => `[${k + 1}] ${t}`).join("\n\n") : texto;
+    const d = await sample.json(buildPrompt(src, o), { signal: ctl.signal });
+    if (!d || !Array.isArray(d.secciones) || !d.secciones.length) throw { code: "invalid_json" };
+    d.tipo = o.tipo;
+    if (o.numbered) d.orig_refs = Object.fromEntries(paras.map((t, k) => [k + 1, t.split(/\s+/).slice(0, 6).join(" ").replace(/[,;:.]$/, "")]));
+    editing = false;
+    render(d, false, o.pictos);
+    saveHist(d, o.pictos);
+    setStatus("Listo. Revisa el texto y las notas para la docente antes de dárselo a la alumna.");
+    if (window.matchMedia("(max-width: 900px)").matches) $("h-out").scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    if (e?.code === "cancelled") setStatus("Adaptación detenida.");
+    else { setStatus(ERRORS[e?.code] || "Hubo un problema de conexión. Vuelve a pulsar «Adaptar texto».", "err"); if (["not_granted", "sampling_disabled", "session_expired"].includes(e?.code)) { $("help-cta").hidden = false; diag.ia = "error " + e.code; showDiag(); } if (e?.code === "not_granted" && perms) $("btn-perm").hidden = false; }
+  } finally { setBusy(false); }
+}
+
+/* Historial en este dispositivo */
+const HKEY = "lf-historial";
+function loadHist() { try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch (e) { return []; } }
+function saveHist(d, pictos) {
+  try {
+    const h = loadHist();
+    const t = Date.now(); d._t = t;
+    h.unshift({ t, d, pictos });
+    localStorage.setItem(HKEY, JSON.stringify(h.slice(0, 15)));
+  } catch (e) {}
+}
+function showHist() {
+  const h = loadHist();
+  $("hist-list").innerHTML = h.length ? h.map((x, i) =>
+    `<li><button type="button" data-h="${i}"><b>${esc(x.d.titulo)}</b><small>${new Date(x.t).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" })}</small></button></li>`).join("")
+    : `<li class="hint">Todavía no hay textos adaptados en este dispositivo.</li>`;
+  openSheet("sheet-hist");
+}
+$("hist-list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-h]"); if (!b) return;
+  const x = loadHist()[+b.dataset.h]; if (!x) return;
+  render(x.d, false, x.pictos !== false);
+  closeSheets();
+  $("h-out").scrollIntoView({ behavior: "smooth" });
+});
+
+/* Paneles */
+let lastFocus = null;
+function openSheet(id) { lastFocus = document.activeElement; $(id).hidden = false; $(id).querySelector("[data-close]").focus(); }
+function closeSheets() { document.querySelectorAll(".sheet").forEach(s => s.hidden = true); lastFocus?.focus?.(); }
+document.querySelectorAll(".sheet").forEach(s => s.addEventListener("click", (e) => { if (e.target === s || e.target.closest("[data-close]")) closeSheets(); }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheets(); });
+
+async function copyText(t, btn, label) {
+  try { await navigator.clipboard.writeText(t); btn.textContent = "Copiado"; }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); btn.textContent = "Copiado"; } catch (_) { btn.textContent = "Selecciónalo a mano"; }
+    ta.remove();
+  }
+  setTimeout(() => btn.textContent = label, 1800);
+}
+
+$("btn-go").onclick = adapt;
+$("btn-stop").onclick = () => ctl?.abort();
+$("btn-hist").onclick = showHist;
+$("btn-install").onclick = () => openSheet("sheet-install");
+$("btn-copy-link").onclick = () => copyText($("page-link").textContent, $("btn-copy-link"), "Copiar enlace");
+$("btn-read-all").onclick = () => speak([current.titulo, plain(txt(current.en_una_frase)), ...current.secciones.flatMap(s => [s.subtitulo, ...s.parrafos.map(p => plain(txt(p)))])].join(". "));
+$("btn-copy").onclick = () => copyText(fullText(current), $("btn-copy"), "Copiar");
+$("btn-doc").onclick = async () => {
+  const name = (current.titulo || "texto-adaptado").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w -]/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "texto-adaptado";
+  try { await downloads.save({ filename: name + ".doc", data: new Blob(["﻿" + docHtml(current)], { type: "application/msword" }) }); } catch (e) {}
+};
+$("btn-student").onclick = () => {
+  if (editing) { editing = false; render(current, $("badge").hidden === false, currentShowPictos); updateHist(); }
+  const on = document.body.classList.toggle("student");
+  $("lbl-student").textContent = on ? "Vista docente" : "Vista alumna";
+  window.scrollTo({ top: 0 });
+};
+let readSize = 1.25;
+function setSize(v) { readSize = Math.min(2, Math.max(1, v)); document.documentElement.style.setProperty("--read-size", readSize + "rem"); try { localStorage.setItem("lf-size", readSize); } catch (e) {} }
+$("btn-bigger").onclick = () => setSize(readSize + 0.1);
+$("btn-smaller").onclick = () => setSize(readSize - 0.1);
+
+
+/* Glosario: agregar o quitar palabras a mano */
+function wordRe(w) { const e = w.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); return new RegExp(`(?<![\\p{L}*])(${e}\\p{L}{0,3})(?![\\p{L}*])`, "iu"); }
+function markFirst(d, w) {
+  const re = wordRe(w);
+  for (const s of d.secciones || []) for (const p of s.parrafos || []) for (const mm of txt(p).matchAll(/\*\*(.+?)\*\*/g)) if (re.test(mm[1])) return true;
+  for (const s of d.secciones || []) for (const p of s.parrafos || []) {
+    const t = txt(p);
+    const plainParts = t.split(/(\*\*.+?\*\*)/);
+    for (let k = 0; k < plainParts.length; k += 2) {
+      if (re.test(plainParts[k])) {
+        plainParts[k] = plainParts[k].replace(re, "**$1**");
+        const nt = plainParts.join("");
+        if (typeof p === "string") s.parrafos[s.parrafos.indexOf(p)] = nt; else p.texto = nt;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function unmark(d, w) {
+  const target = norm(w);
+  const fix = (t) => t.replace(/\*\*(.+?)\*\*/g, (all, x) => { const n = norm(x); return (n === target || (Math.min(n.length, target.length) >= 4 && (n.startsWith(target) || target.startsWith(n)))) ? x : all; });
+  for (const s of d.secciones || []) s.parrafos = (s.parrafos || []).map(p => typeof p === "string" ? fix(p) : Object.assign(p, { texto: fix(p.texto) }));
+}
+function updateHist() {
+  if (!current._t) return;
+  try { const h = loadHist(); const it = h.find(x => x.t === current._t); if (it) { it.d = current; localStorage.setItem(HKEY, JSON.stringify(h)); } } catch (e) {}
+}
+function contextFor(w) {
+  const re = wordRe(w);
+  for (const s of current.secciones || []) for (const p of s.parrafos || []) if (re.test(plain(txt(p)))) return plain(txt(p));
+  const src = $("original").value, m = src.match(re);
+  if (m) { const i = m.index; return src.slice(Math.max(0, i - 200), i + 200); }
+  return "";
+}
+$("result").addEventListener("submit", async (e) => {
+  if (e.target.id !== "gl-add") return;
+  e.preventDefault();
+  const w = $("gl-word").value.trim(); if (!w) return;
+  const st = $("gl-status"), btn = e.target.querySelector("button");
+  if (!sample) { st.textContent = "Para agregar palabras, abre la página en Claude con la sesión iniciada."; return; }
+  if ((current.glosario || []).some(g => norm(g.palabra) === norm(w))) { st.textContent = "Esa palabra ya está en el glosario."; return; }
+  btn.disabled = true; st.textContent = "Buscando una explicación sencilla…";
+  const o = opts(), g = grado(o.curso), l = grado(o.lee), ctx = contextFor(w);
+  try {
+    const r = await sample.json(`Explica la palabra "${w}" para un estudiante de ${g[1]} (${g[2]} años) que lee como en ${l[1]}. ${ctx ? `Aparece en este texto: """${ctx}"""\nExplica el sentido que tiene en ese texto.` : ""}
+Usa una frase muy simple, sin palabras difíciles, y un ejemplo cotidiano corto. Elige UN emoji concreto que la represente.
+Responde SOLO con JSON: {"palabra": "la palabra en singular, como en el diccionario", "significado": "", "ejemplo": "", "picto": "emoji"}`, { modelTier: "quick" });
+    if (!r?.significado) throw { code: "invalid_json" };
+    current.glosario = current.glosario || [];
+    current.glosario.push({ palabra: r.palabra || w, significado: r.significado, ejemplo: r.ejemplo || "", picto: r.picto || "" });
+    const found = markFirst(current, w) || (r.palabra && markFirst(current, r.palabra));
+    render(current, false, currentShowPictos); updateHist();
+    $("gl-status").textContent = found ? `Se agregó «${r.palabra || w}» y se marcó en el texto.` : `Se agregó «${r.palabra || w}». No aparece en el texto adaptado, así que irá al final del glosario.`;
+  } catch (err) {
+    st.textContent = ERRORS[err?.code] || "No se pudo agregar la palabra. Vuelve a intentarlo.";
+  } finally { btn.disabled = false; }
+});
+$("result").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-delgl]"); if (!b) return;
+  const g = current.glosario.splice(+b.dataset.delgl, 1)[0];
+  if (g) unmark(current, g.palabra);
+  render(current, $("badge").hidden === false, currentShowPictos); updateHist();
+});
+
+
+/* Ayuda, primera visita y traspaso de datos */
+$("btn-help").onclick = () => openSheet("sheet-help");
+$("help-cta").onclick = () => { openSheet("sheet-help"); $("sheet-help").querySelectorAll("details")[3].open = true; };
+$("btn-copy-link2").onclick = () => copyText($("help-link").textContent, $("btn-copy-link2"), "Copiar enlace");
+$("btn-export").onclick = () => copyText("LECTURAFACIL:" + JSON.stringify({ v: 1, perfiles, historial: loadHist() }), $("btn-export"), "Copiar mis datos");
+$("btn-import").onclick = () => {
+  const st = $("import-status");
+  try {
+    const raw = $("import-box").value.trim().replace(/^LECTURAFACIL:/, "");
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.perfiles)) throw 0;
+    const ids = new Set(perfiles.map(p => p.id));
+    data.perfiles.filter(p => p && p.id && !ids.has(p.id)).forEach(p => perfiles.push({ id: String(p.id), alias: String(p.alias || "Estudiante"), curso: GRADOS.some(g => g[0] === p.curso) ? p.curso : "5sec", lee: GRADOS.some(g => g[0] === p.lee) ? p.lee : "5pri", notas: String(p.notas || "") }));
+    if (Array.isArray(data.historial)) {
+      const h = loadHist(), ts = new Set(h.map(x => x.t));
+      const merged = h.concat(data.historial.filter(x => x && x.d && Array.isArray(x.d.secciones) && !ts.has(x.t))).sort((a, b) => b.t - a.t).slice(0, 30);
+      lsSet(HKEY, JSON.stringify(merged));
+    }
+    guardarPerfiles(); pintarPerfiles();
+    $("import-box").value = "";
+    st.textContent = "Listo: se importaron los estudiantes y los textos.";
+  } catch (e) { st.textContent = "Ese texto no es válido. Cópialo de nuevo desde «Copiar mis datos»."; }
+};
+
+/* ---------- A5 para imprimir ---------- */
+const A5 = { W: 148, H: 210, mT: 14, mB: 18, mL: 14, mR: 14 };
+const PT = 0.3528;
+const FEMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const CCOL = { ink: "#1A1D21", muted: "#5C636B", acc: "#1F4F5C", hl: "#F2DE96", soft: "#E9F0F1", pbg: null, line: "#BFC7C9" };
+const CBW = { ink: "#000000", muted: "#4a4a4a", acc: "#000000", hl: "#E3E3E3", soft: "#F1F1F1", pbg: null, line: "#8a8a8a" };
+const FONTS = {
+  sobria: { read: '"Source Sans 3", "Segoe UI", Arial, sans-serif', head: '"Source Serif 4", Georgia, serif' },
+  legible: { read: '"Atkinson Hyperlegible", Verdana, sans-serif', head: '"Lexend", "Segoe UI", sans-serif' }
+};
+const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const supNum = (n) => String(n).split("").map(c => SUP[+c]).join("");
+const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "").trim();
+
+async function fontsReady() {
+  try {
+    await Promise.all([
+      '400 20px "Atkinson Hyperlegible"', '700 20px "Atkinson Hyperlegible"', 'italic 400 20px "Atkinson Hyperlegible"',
+      '700 20px "Lexend"', '600 20px "Lexend"',
+      '400 20px "Source Sans 3"', '700 20px "Source Sans 3"', 'italic 400 20px "Source Sans 3"', '700 20px "Source Serif 4"', '600 20px "Source Serif 4"'
+    ].map(f => document.fonts.load(f)));
+  } catch (e) {}
+}
+
+function layoutA5(d, cfg, S) {
+  const C = cfg.bw ? CBW : CCOL;
+  const F = FONTS[cfg.font] || FONTS.sobria, FREAD = F.read, FUI = F.head;
+  const m = (x) => x * S;
+  const px = (pt) => pt * PT * S;
+  const meas = document.createElement("canvas").getContext("2d");
+  const fontOf = (s, size, fam) => `${s.i ? "italic " : ""}${s.b ? 700 : 400} ${size}px ${fam}`;
+  const poem = d.tipo === "poema";
+  const gl = Array.isArray(d.glosario) ? d.glosario : [];
+  const mode = gl.length ? cfg.glosa : "final";
+  const noteNum = new Map(); let noteCount = 0;
+  const margin = mode === "margen";
+  const colW = margin ? m(81) : m(A5.W - A5.mL - A5.mR);
+  const noteX = m(A5.mL + 81 + 5), noteW = m(34);
+  const bodyPt = cfg.size;
+
+  function findGloss(word) {
+    const w = norm(word); if (w.length < 3) return -1;
+    return gl.findIndex(g => { const p = norm(g.palabra); return p === w || (Math.min(p.length, w.length) >= 4 && (p.startsWith(w) || w.startsWith(p))); });
+  }
+  function segsOf(text, notes) {
+    const out = []; const parts = String(text ?? "").split(/\*\*(.+?)\*\*/);
+    parts.forEach((t, k) => {
+      if (!t) return;
+      if (k % 2 === 0) { out.push({ t }); return; }
+      let sup = null;
+      if (mode !== "final") {
+        const gi = findGloss(t);
+        if (gi >= 0 && !noteNum.has(gi)) { noteNum.set(gi, ++noteCount); notes.push(gi); sup = noteCount; }
+      }
+      out.push({ t, b: 1, m: 1, sup });
+    });
+    return out;
+  }
+  function wrap(segs, maxW, size, fam) {
+    const lines = []; let line = [], x = 0;
+    const push = () => { while (line.length && line[line.length - 1].sp) x -= line.pop().w; lines.push(line); line = []; x = 0; };
+    for (const s of segs) {
+      const parts = s.t.split(/(\s+)/).filter(Boolean);
+      let last = -1; parts.forEach((t, i) => { if (!/^\s+$/.test(t)) last = i; });
+      parts.forEach((t, i) => {
+        const sp = /^\s+$/.test(t);
+        if (sp && !line.length) return;
+        if (/\n/.test(t)) { push(); return; }
+        meas.font = fontOf(s, size, fam);
+        const w = meas.measureText(sp ? " " : t).width;
+        let supT = null, supW = 0;
+        if (s.sup && i === last) { supT = supNum(s.sup); meas.font = `700 ${size * 0.62}px ${FREAD}`; supW = meas.measureText(supT).width + size * 0.05; }
+        if (!sp && x + w + supW > maxW && line.length) push();
+        line.push({ t: sp ? " " : t, sp, w: w + supW, tw: w, b: s.b, m: s.m, i: s.i, c: s.c, supT, x });
+        x += w + supW;
+      });
+    }
+    if (line.length) push();
+    return lines;
+  }
+  function textBlock(segs, maxW, pt, fam, color, lhMul = 1.5) {
+    const size = px(pt), lh = size * lhMul, lines = wrap(segs, maxW, size, fam);
+    return {
+      h: lines.length * lh,
+      draw(ctx, x0, y0) {
+        lines.forEach((ln, k) => {
+          const top = y0 + k * lh, base = top + lh / 2 + size * 0.35;
+          ln.forEach(it => {
+            if (it.m && !it.sp) { ctx.fillStyle = C.hl; ctx.fillRect(x0 + it.x - size * 0.05, top + lh / 2 - size * 0.02, it.tw + size * 0.1, size * 0.5); }
+          });
+          ln.forEach(it => {
+            ctx.font = fontOf(it, size, fam); ctx.fillStyle = it.c || color; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+            ctx.fillText(it.t, x0 + it.x, base);
+            if (it.supT) { ctx.font = `700 ${size * 0.62}px ${FREAD}`; ctx.fillStyle = C.acc; ctx.fillText(it.supT, x0 + it.x + it.tw + size * 0.05, base - size * 0.42); }
+          });
+        });
+      }
+    };
+  }
+  function rr(ctx, x, y, w, h, r, fill) {
+    ctx.fillStyle = fill; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+    ctx.fill();
+  }
+  function picto(ctx, e, x, y, sz) {
+    if (C.pbg) rr(ctx, x, y, sz, sz, sz * 0.18, C.pbg);
+    else { ctx.strokeStyle = C.line; ctx.lineWidth = sz * 0.025; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, sz, sz, sz * 0.18); else ctx.rect(x, y, sz, sz); ctx.stroke(); }
+    if (!e) return;
+    ctx.font = `${sz * 0.6}px ${FEMO}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = C.ink;
+    ctx.fillText(e, x + sz / 2, y + sz / 2 + sz * 0.03); ctx.textAlign = "left";
+  }
+  function rowBlock(segs, pic, pt, opt = {}) {
+    const notes = opt.notes || [];
+    const P = cfg.pictos && opt.picto !== false ? m(poem ? 8 : 11) : 0, gap = P ? m(poem ? 3 : 4) : 0;
+    const t = textBlock(segs, (opt.w || colW) - P - gap, pt, FREAD, C.ink, poem ? 1.4 : 1.5);
+    const h = Math.max(t.h, P);
+    return { h, notes, gap: opt.gap ?? m(poem ? 1.2 : 3), draw(ctx, x, y) { if (P) picto(ctx, pic, x, y, P); t.draw(ctx, x + P + gap, y + Math.max(0, (P - t.h) / 2)); } };
+  }
+  function headBlock(t, pt = bodyPt + 2) {
+    const tb = textBlock([{ t, b: 1 }], colW, pt, FUI, C.acc, 1.3);
+    return { h: tb.h, before: m(3), gap: m(2.2), keep: true, notes: [], draw: (ctx, x, y) => tb.draw(ctx, x, y) };
+  }
+  function boxBlock(label, segs, pic) {
+    const pad = m(4), P = cfg.pictos && pic ? m(9) : 0, gap = P ? m(3) : 0;
+    const lab = textBlock([{ t: label.toUpperCase(), b: 1 }], colW - 2 * pad, 8.5, FUI, C.acc, 1.3);
+    const tb = textBlock(segs, colW - 2 * pad - P - gap, bodyPt - 1, FREAD, C.ink, 1.45);
+    const inner = lab.h + m(1) + Math.max(tb.h, P);
+    return { h: inner + 2 * pad, notes: [], gap: m(4), draw(ctx, x, y) {
+      rr(ctx, x, y, colW, inner + 2 * pad, m(3), C.soft);
+      lab.draw(ctx, x + pad, y + pad);
+      const yy = y + pad + lab.h + m(1);
+      if (P) picto(ctx, pic, x + pad, yy, P);
+      tb.draw(ctx, x + pad + P + gap, yy);
+    } };
+  }
+  function pistasBlock(list) {
+    const pad = m(3.5);
+    const lab = textBlock([{ t: "PISTAS", b: 1 }], colW, 8.5, FUI, C.acc, 1.3);
+    const items = list.map((x, k) => textBlock([{ t: (k + 1) + ". ", b: 1 }, ...segsOf(txt(x), [])], colW - 2 * pad, bodyPt - 1.5, FREAD, C.ink, 1.4));
+    const inner = lab.h + items.reduce((a, b) => a + b.h + m(1), 0);
+    return { h: inner + 2 * pad, notes: [], gap: m(4), draw(ctx, x, y) {
+      ctx.strokeStyle = C.acc; ctx.lineWidth = m(0.35); ctx.setLineDash([m(1.2), m(1)]);
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, colW, inner + 2 * pad, m(3)); else ctx.rect(x, y, colW, inner + 2 * pad); ctx.stroke(); ctx.setLineDash([]);
+      lab.draw(ctx, x + pad, y + pad); let yy = y + pad + lab.h;
+      items.forEach(it => { it.draw(ctx, x + pad, yy); yy += it.h + m(1); });
+    } };
+  }
+  function questionBlock(q, k) {
+    const qt = textBlock([{ t: `${k + 1}. ${q.pregunta}`, b: 1 }], colW, bodyPt, FREAD, C.ink, 1.45);
+    const box = m(4.2), opts = (q.opciones || []).map(o => textBlock([{ t: o }], colW - box - m(6), bodyPt, FREAD, C.ink, 1.45));
+    const h = qt.h + m(1.5) + opts.reduce((a, b) => a + Math.max(b.h, box) + m(1.8), 0);
+    return { h, notes: [], gap: m(4), draw(ctx, x, y) {
+      qt.draw(ctx, x, y); let yy = y + qt.h + m(1.5);
+      opts.forEach(o => {
+        const oh = Math.max(o.h, box);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = m(0.3); ctx.strokeRect(x + m(2), yy + (oh - box) / 2, box, box);
+        o.draw(ctx, x + m(2) + box + m(4), yy + (oh - o.h) / 2); yy += oh + m(1.8);
+      });
+    } };
+  }
+  function noteBlock(gi, w, small) {
+    const g = gl[gi], n = noteNum.get(gi);
+    const P = cfg.pictos ? m(small ? 5.5 : 6.5) : 0, gap = P ? m(2) : 0;
+    const segs = [{ t: supNum(n) + " ", b: 1, c: C.acc }, { t: g.palabra, b: 1 }, { t: ": " + g.significado }];
+    if (!small && g.ejemplo) segs.push({ t: " Ejemplo: " + g.ejemplo, i: 1, c: C.muted });
+    const tb = textBlock(segs, w - P - gap, small ? 9.5 : 10.5, FREAD, C.ink, 1.35);
+    return { h: Math.max(tb.h, P), draw(ctx, x, y) { if (P) picto(ctx, g.picto ? pic(g) : "", x, y, P); tb.draw(ctx, x + P + gap, y); } };
+  }
+
+  /* Bloques del documento */
+  const blocks = [];
+  const tb = textBlock([{ t: d.titulo || "", b: 1 }], colW, bodyPt + 8, FUI, C.ink, 1.2);
+  const au = d.autor ? textBlock([{ t: d.autor, i: 1 }], colW, 10.5, FREAD, C.muted, 1.4) : null;
+  blocks.push({ h: tb.h + (au ? au.h + m(1) : 0), notes: [], gap: m(5), draw(ctx, x, y) { tb.draw(ctx, x, y); if (au) au.draw(ctx, x, y + tb.h + m(1)); } });
+  if (d.antes_de_leer && txt(d.antes_de_leer)) { const n = []; blocks.push(Object.assign(boxBlock("Antes de leer", segsOf(txt(d.antes_de_leer), n), pic(d.antes_de_leer)), { notes: n })); }
+  if (d.en_una_frase && txt(d.en_una_frase)) { const n = []; blocks.push(Object.assign(boxBlock("En una frase", segsOf(txt(d.en_una_frase), n), pic(d.en_una_frase)), { notes: n })); }
+  if (d.personajes?.length) {
+    blocks.push(headBlock("Los personajes"));
+    d.personajes.forEach(c => blocks.push(rowBlock([{ t: c.nombre + ": ", b: 1 }, { t: c.descripcion }], pic(c), bodyPt - 1)));
+  }
+  let lastRefPdf = "";
+  (d.secciones || []).forEach(s => {
+    if (s.subtitulo) blocks.push(headBlock(s.subtitulo));
+    else if (poem) blocks.push({ h: m(3), notes: [], gap: 0, draw() {} });
+    (s.parrafos || []).forEach(p => {
+      const r = refLabel(d, p);
+      if (r && r !== lastRefPdf) { lastRefPdf = r; const rb = textBlock([{ t: r, i: 1 }], colW, 8.5, FREAD, C.muted, 1.3); blocks.push({ h: rb.h, notes: [], gap: m(1), keep: true, draw: (ctx, x, y) => rb.draw(ctx, x, y) }); }
+      const n = []; const segs = segsOf(txt(p), n); blocks.push(rowBlock(segs, pic(p), bodyPt, { notes: n }));
+    });
+    if (s.pistas?.length) blocks.push(pistasBlock(s.pistas));
+  });
+  if (d.ideas_clave?.length) {
+    blocks.push(headBlock("Lo más importante"));
+    d.ideas_clave.forEach(x => blocks.push(rowBlock([{ t: "•  ", b: 1, c: C.acc }, ...segsOf(txt(x), [])], "", bodyPt, { picto: false, gap: m(2) })));
+  }
+  const rest = gl.map((g, i) => i).filter(i => !noteNum.has(i));
+  if (rest.length) {
+    blocks.push(headBlock(mode === "final" ? "Palabras importantes" : "Otras palabras importantes"));
+    rest.forEach(i => { const g = gl[i]; blocks.push(rowBlock([{ t: g.palabra, b: 1, m: 1 }, { t: ": " + g.significado }, ...(g.ejemplo ? [{ t: " Ejemplo: " + g.ejemplo, i: 1, c: C.muted }] : [])], pic(g), bodyPt - 1)); });
+  }
+  if (d.preguntas?.length) { blocks.push(headBlock("¿Lo entendiste?")); d.preguntas.forEach((q, k) => blocks.push(questionBlock(q, k))); }
+
+  /* Paginación */
+  const pages = [];
+  const top = m(A5.mT), bottom = m(A5.H - A5.mB), x0 = m(A5.mL);
+  let pg = null;
+  const newPage = () => {
+    const cv = document.createElement("canvas"); cv.width = Math.round(m(A5.W)); cv.height = Math.round(m(A5.H));
+    const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+    pg = { cv, ctx, y: top, notes: [], noteY: top, empty: true }; pages.push(pg);
+  };
+  const footH = (list) => list.length ? m(5) + list.reduce((a, gi) => a + noteBlock(gi, colW, false).h + m(1.6), 0) : 0;
+  newPage();
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    const yStart = pg.empty ? pg.y : pg.y + (b.before || 0);
+    let need = b.h;
+    for (let k = i; blocks[k].keep && blocks[k + 1]; k++) need += (blocks[k].gap ?? m(3)) + blocks[k + 1].h;
+    let fits;
+    if (mode === "pie") fits = yStart + need <= bottom - footH(pg.notes.concat(b.notes));
+    else if (margin) {
+      const ny = Math.max(yStart, pg.noteY), nh = b.notes.reduce((a, gi) => a + noteBlock(gi, noteW, true).h + m(2), 0);
+      fits = yStart + need <= bottom && ny + nh <= bottom;
+    } else fits = yStart + need <= bottom;
+    if (!fits && !pg.empty) { newPage(); i--; continue; }
+    const y = pg.empty ? pg.y : yStart;
+    b.draw(pg.ctx, x0, y);
+    if (margin && b.notes.length) {
+      let ny = Math.max(y, pg.noteY);
+      b.notes.forEach(gi => { const nb = noteBlock(gi, noteW, true); nb.draw(pg.ctx, noteX, ny); ny += nb.h + m(2); });
+      pg.noteY = ny;
+    }
+    pg.notes.push(...b.notes);
+    pg.y = y + b.h + (b.gap ?? m(3));
+    pg.empty = false;
+  }
+  /* Notas al pie, bordes y números de página */
+  pages.forEach((p, k) => {
+    const ctx = p.ctx;
+    if (mode === "pie" && p.notes.length) {
+      let y = bottom - footH(p.notes) + m(3);
+      ctx.strokeStyle = C.line; ctx.lineWidth = m(0.3); ctx.beginPath(); ctx.moveTo(x0, y - m(1.5)); ctx.lineTo(x0 + m(40), y - m(1.5)); ctx.stroke();
+      y += m(0.5);
+      p.notes.forEach(gi => { const nb = noteBlock(gi, colW, false); nb.draw(ctx, x0, y); y += nb.h + m(1.6); });
+    }
+    if (margin) { ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25); ctx.beginPath(); ctx.moveTo(noteX - m(2.5), top); ctx.lineTo(noteX - m(2.5), bottom); ctx.stroke(); }
+    ctx.font = `400 ${px(8.5)}px ${FUI}`; ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(`${d.titulo || ""}  ·  ${k + 1} / ${pages.length}`, m(A5.W / 2), m(A5.H - 8));
+    ctx.textAlign = "left";
+  });
+  if (cfg.bw) pages.forEach(p => {
+    const im = p.ctx.getImageData(0, 0, p.cv.width, p.cv.height), a = im.data;
+    for (let k = 0; k < a.length; k += 4) { const g = a[k] * 0.299 + a[k + 1] * 0.587 + a[k + 2] * 0.114; a[k] = a[k + 1] = a[k + 2] = g; }
+    p.ctx.putImageData(im, 0, 0);
+  });
+  return pages.map(p => p.cv);
+}
+
+/* Cuadernillo: A4 apaisado, dos A5 por cara, en orden para doblar y engrapar */
+function imposeOrder(n) {
+  const N = Math.ceil(n / 4) * 4, out = [];
+  for (let i = 0; i < N / 4; i++) {
+    out.push({ hoja: i + 1, cara: "frente", L: N - 2 * i, R: 1 + 2 * i });
+    out.push({ hoja: i + 1, cara: "dorso", L: 2 + 2 * i, R: N - 1 - 2 * i });
+  }
+  return { N, out };
+}
+function spreadCanvas(pages, sp, S, preview) {
+  const cv = document.createElement("canvas"); cv.width = Math.round(297 * S); cv.height = Math.round(210 * S);
+  const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+  const put = (n, x) => { const pg = pages[n - 1]; if (pg) ctx.drawImage(pg, x * S, 0, 148 * S, 210 * S); };
+  put(sp.L, 0.5); put(sp.R, 148.5);
+  ctx.strokeStyle = "#999"; ctx.lineWidth = Math.max(1, 0.25 * S);
+  if (preview) { ctx.setLineDash([2 * S, 2 * S]); ctx.beginPath(); ctx.moveTo(148.5 * S, 0); ctx.lineTo(148.5 * S, 210 * S); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.moveTo(148.5 * S, 0); ctx.lineTo(148.5 * S, 4 * S); ctx.moveTo(148.5 * S, 206 * S); ctx.lineTo(148.5 * S, 210 * S); ctx.stroke(); }
+  return cv;
+}
+
+function prCfg() { return { size: +$("pr-size").value, glosa: $("pr-glosa").value, pictos: currentShowPictos, bw: $("pr-color").value === "bw", font: $("pr-font").value, formato: $("pr-formato").value }; }
+let prTimer = null;
+async function prPreview() {
+  $("pr-status").textContent = "Preparando las páginas…";
+  await fontsReady();
+  const cfg = prCfg();
+  const pages = layoutA5(current, cfg, 3.6);
+  const box = $("pr-pages"); box.innerHTML = ""; box.classList.toggle("spreads", cfg.formato === "cuadernillo");
+  if (cfg.formato === "cuadernillo") {
+    const { N, out } = imposeOrder(pages.length);
+    out.forEach(sp => {
+      const fig = document.createElement("figure"); const cv = spreadCanvas(pages, sp, 2.2, true);
+      cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `Hoja ${sp.hoja}, ${sp.cara}: páginas ${sp.L} y ${sp.R}`);
+      const cap = document.createElement("figcaption"); cap.textContent = `Hoja ${sp.hoja} · ${sp.cara}`;
+      fig.append(cv, cap); box.appendChild(fig);
+    });
+    $("pr-status").textContent = `${pages.length} páginas A5 en ${N / 4} ${N / 4 === 1 ? "hoja A4" : "hojas A4"} a doble cara${N > pages.length ? ` (${N - pages.length} en blanco al final)` : ""}.`;
+  } else {
+    pages.forEach((cv, k) => { cv.setAttribute("aria-label", `Página ${k + 1}`); cv.setAttribute("role", "img"); box.appendChild(cv); });
+    $("pr-status").textContent = `${pages.length} ${pages.length === 1 ? "página" : "páginas"} A5.`;
+  }
+}
+async function prPdf() {
+  if (!window.jspdf?.jsPDF) {
+    await new Promise(res => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"; sc.onload = sc.onerror = res; document.head.appendChild(sc); });
+  }
+  if (!window.jspdf?.jsPDF) { $("pr-status").textContent = "No se pudo cargar el generador de PDF. Recarga la página y vuelve a intentarlo."; return; }
+  const btn = $("btn-pdf"); btn.disabled = true; $("pr-status").textContent = "Creando el PDF…";
+  try {
+    await fontsReady();
+    const cfg = prCfg();
+    const pages = layoutA5(current, cfg, 11.8);
+    let pdf;
+    if (cfg.formato === "cuadernillo") {
+      pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
+      imposeOrder(pages.length).out.forEach((sp, k) => { if (k) pdf.addPage("a4", "landscape"); pdf.addImage(spreadCanvas(pages, sp, 11.8, false).toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 297, 210); });
+    } else {
+      pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a5", orientation: "portrait", compress: true });
+      pages.forEach((cv, k) => { if (k) pdf.addPage("a5", "portrait"); pdf.addImage(cv.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, A5.W, A5.H); });
+    }
+    pdf.setProperties({ title: current.titulo || "Texto adaptado" });
+    const name = (current.titulo || "texto-adaptado").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w -]/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "texto-adaptado";
+    await downloads.save({ filename: name + (cfg.formato === "cuadernillo" ? "-cuadernillo-A4.pdf" : "-A5.pdf"), data: pdf.output("blob") });
+    $("pr-status").textContent = "PDF listo.";
+  } catch (e) {
+    $("pr-status").textContent = e?.code === "cancelled" || e?.code === "declined" ? "Descarga cancelada." : "No se pudo crear el PDF. Vuelve a intentarlo.";
+  } finally { btn.disabled = false; }
+}
+$("btn-print").onclick = () => { openSheet("sheet-print"); prPreview(); };
+$("btn-pdf").textContent = "Descargar PDF";
+const PR_IDS = ["pr-size", "pr-glosa", "pr-color", "pr-font", "pr-formato"];
+PR_IDS.forEach(id => $(id).addEventListener("change", () => { lsSet("lf-" + id, $(id).value); prHint(); prPreview(); }));
+function prHint() { $("pr-hint").innerHTML = $("pr-formato").value === "cuadernillo"
+  ? "Imprime en A4 <b>a doble cara</b>, eligiendo <b>«voltear por el borde corto»</b>. Después dobla las hojas juntas por la mitad y engrapa en el doblez."
+  : "Elige papel A5 en la impresora. Si solo tienes A4, usa «2 páginas por hoja» o elige el formato «Cuadernillo A4»."; }
+$("btn-pdf").onclick = prPdf;
+PR_IDS.forEach(id => { const v = lsGet("lf-" + id); if (v && [...$(id).options].some(o => o.value === v)) $(id).value = v; });
+prHint();
+
+try { const s = parseFloat(localStorage.getItem("lf-size")); if (s) setSize(s); } catch (e) {}
+initPerfiles();
+{ const t = lsGet("lf-tipo"), m = lsGet("lf-materia"); if (t && TIPO_HINTS[t]) $("tipo").value = t; if (m && [...$("materia").options].some(o => o.value === m)) $("materia").value = m; }
+tipoHint();
+if (!lsGet("lf-bienvenida")) { lsSet("lf-bienvenida", "1"); setTimeout(() => openSheet("sheet-help"), 400); }
+
+$("original").value = EXAMPLE_TEXT;
+render(EXAMPLE, true, true);
+
+let perms = null;
+const diag = { visor: !!window.claude?.use, ia: "?", permiso: "?", nav: /Edg\//.test(navigator.userAgent) ? "Edge" : /CriOS|Chrome\//.test(navigator.userAgent) ? "Chrome" : /Firefox|FxiOS/.test(navigator.userAgent) ? "Firefox" : /Safari\//.test(navigator.userAgent) ? "Safari" : "otro" };
+function showDiag() {
+  $("diag").hidden = false;
+  $("diag").textContent = `Diagnóstico: visor ${diag.visor ? "sí" : "no"} · IA ${diag.ia} · permiso ${diag.permiso} · ${diag.nav}${/Mobi|Android|iPhone/.test(navigator.userAgent) ? " (celular)" : ""}`;
+}
+async function checkPerm() {
+  if (!perms) return;
+  try { diag.permiso = await perms.state("sample"); } catch (e) { diag.permiso = "error"; }
+  if (diag.permiso === "denied") {
+    $("btn-go").disabled = true; $("btn-perm").hidden = false;
+    setStatus("Esta página no tiene permiso para usar Claude en este navegador. Pulsa «Dar permiso» y activa Claude.", "err");
+  }
+  showDiag();
+}
+$("btn-perm").onclick = async () => {
+  try { await perms.manage(); } catch (e) { setStatus("No se pudo abrir el panel. Busca el menú «Permisos» de la página, arriba en la barra de Claude, y activa Claude.", "err"); return; }
+  await checkPerm();
+  if (diag.permiso !== "denied") { $("btn-perm").hidden = true; $("btn-go").disabled = false; setStatus("Listo. Ya puedes pulsar «Adaptar texto»."); }
+};
+(async () => {
+  if (!window.claude?.use) {
+    $("btn-go").disabled = true; diag.ia = "no"; diag.permiso = "-";
+    setStatus(location.protocol === "file:" ? "Este es un archivo descargado: así no puede conectarse con Claude. Abre la aplicación desde su enlace: https://claude.ai/artifact/TuAXtS8wJKRVgVUtL4ePrE" : "Esta página se abrió fuera del visor de Claude. Ábrela con el enlace que empieza con claude.ai/artifact/ e inicia sesión.", "err");
+    $("help-cta").hidden = false; showDiag(); return;
+  }
+  setStatus("Conectando con Claude…", "busy");
+  [sample, perms, downloads] = await Promise.all([claude.use("sample"), claude.use("permissions"), claude.use("downloads")]);
+  diag.ia = sample ? "sí" : "no";
+  $("btn-doc").hidden = !downloads;
+  if (!sample) {
+    $("btn-go").disabled = true;
+    setStatus("Claude no está disponible en esta ventana. Suele pasar en ventanas privadas o de incógnito, si el navegador bloquea las cookies, o con extensiones que bloquean anuncios. Prueba en una ventana normal de Chrome o Edge, con la sesión de Claude iniciada.", "err");
+    $("help-cta").hidden = false; diag.permiso = "-"; showDiag(); return;
+  }
+  setStatus("");
+  await checkPerm();
+})();
+</script>
