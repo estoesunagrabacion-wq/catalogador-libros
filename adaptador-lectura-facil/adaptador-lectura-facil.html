@@ -98,6 +98,7 @@ input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: 
 .speaking { background: var(--accent-soft); box-shadow: 0 0 0 8px var(--accent-soft); border-radius: 4px; }
 @media (prefers-reduced-motion: no-preference) { .speaking { transition: background .2s, box-shadow .2s; } }
 body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
+.welcome-steps { gap: 10px; font-size: 1rem; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -454,6 +455,24 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
   </div>
 </div>
 
+<div class="sheet" id="sheet-welcome" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="h-welcome">
+    <h2 id="h-welcome">Bienvenida a Lectura Fácil <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p style="margin:0;font-size:1.05rem">Una aplicación para adaptar textos a <b>Lectura Fácil</b>, con pictogramas, glosario y PDF para imprimir en A5 o en cuadernillo.</p>
+    <ol class="steps welcome-steps">
+      <li>Necesitas una <b>cuenta de Claude</b> (gratuita, en claude.ai) con la <b>sesión iniciada</b>.</li>
+      <li>Ábrela siempre desde el enlace. <b>No descargues el archivo</b>: descargado no funciona.</li>
+      <li>La primera vez que pulses <b>«Adaptar texto»</b>, elige <b>«Permitir»</b>.</li>
+      <li>El botón de <b>Ayuda (?)</b>, arriba, explica todo paso a paso.</li>
+    </ol>
+    <div class="osbox"><b>Enlace de la aplicación</b>
+      <p style="margin:0;word-break:break-all;user-select:all" id="welcome-link">https://claude.ai/artifact/TuAXtS8wJKRVgVUtL4ePrE</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" type="button" id="btn-copy-invite">Copiar invitación para colegas</button><button class="btn small" type="button" id="btn-welcome-help">Ver la ayuda completa</button></div>
+    </div>
+    <button class="btn primary" type="button" id="btn-welcome-go">Empezar</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheet-help" hidden>
   <div class="sheet-in wide" role="dialog" aria-modal="true" aria-labelledby="h-help">
     <h2 id="h-help">Cómo usar Lectura Fácil <button class="btn small" type="button" data-close>Cerrar</button></h2>
@@ -522,6 +541,7 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <li>Puede invitar por correo o crear un enlace y enviarlo.</li>
         <li>Cada docente necesita su propia cuenta de Claude (sección 1). Lo que guarda cada uno no lo ven los demás.</li>
       </ol>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" type="button" id="btn-copy-invite2">Copiar invitación para colegas</button><button class="btn small" type="button" id="btn-show-welcome">Ver la bienvenida</button></div>
     </details>
   </div>
 </div>
@@ -1580,7 +1600,13 @@ try { const s = parseFloat(localStorage.getItem("lf-size")); if (s) setSize(s); 
 initPerfiles();
 { const t = lsGet("lf-tipo"), m = lsGet("lf-materia"); if (t && TIPO_HINTS[t]) $("tipo").value = t; if (m && [...$("materia").options].some(o => o.value === m)) $("materia").value = m; }
 tipoHint();
-if (!lsGet("lf-bienvenida")) { lsSet("lf-bienvenida", "1"); setTimeout(() => openSheet("sheet-help"), 400); }
+const INVITE = "Hola, te comparto una aplicación para adaptar textos a Lectura Fácil, con pictogramas, glosario y PDF para imprimir en A5 o en cuadernillo:\nhttps://claude.ai/artifact/TuAXtS8wJKRVgVUtL4ePrE\nNecesitas una cuenta de Claude (gratuita, en claude.ai) con la sesión iniciada. Ábrela siempre desde el enlace, no descargues el archivo. La primera vez que pulses «Adaptar texto», elige «Permitir». El botón de Ayuda (?) explica todo paso a paso.";
+$("btn-copy-invite").onclick = () => copyText(INVITE, $("btn-copy-invite"), "Copiar invitación para colegas");
+$("btn-welcome-go").onclick = closeSheets;
+$("btn-copy-invite2").onclick = () => copyText(INVITE, $("btn-copy-invite2"), "Copiar invitación para colegas");
+$("btn-show-welcome").onclick = () => { closeSheets(); openSheet("sheet-welcome"); };
+$("btn-welcome-help").onclick = () => { closeSheets(); openSheet("sheet-help"); };
+if (!lsGet("lf-bienvenida2")) { lsSet("lf-bienvenida2", "1"); lsSet("lf-bienvenida", "1"); setTimeout(() => openSheet("sheet-welcome"), 400); }
 
 $("original").value = EXAMPLE_TEXT;
 render(EXAMPLE, true, true);
