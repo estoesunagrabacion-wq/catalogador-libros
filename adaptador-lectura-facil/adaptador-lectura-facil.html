@@ -119,6 +119,8 @@ body:has(.player:not([hidden])) .wrap { padding-bottom: 80px; }
 .cmp-miss { color: var(--bad); font-size: 0.9rem; font-family: var(--f-ui); }
 @media (max-width: 700px) { .cmp-row { grid-template-columns: minmax(0, 1fr); gap: 8px; } .cmp-a { border-left: 3px solid var(--accent); padding-left: 10px; } }
 body.student #btn-compare { display: none; }
+.auto-row { display: flex; gap: 10px; align-items: flex-start; margin: 0; cursor: pointer; }
+.auto-row input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
 .sheet-in.wide { max-width: 760px; }
 .pages { display: grid; gap: 16px; justify-items: center; background: var(--surface-2); padding: 16px; border-radius: 14px; }
 .pages figure { margin: 0; width: 100%; display: grid; gap: 6px; justify-items: center; }
@@ -631,12 +633,19 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
       </div>
       <div>
         <label class="field-label" for="pr-size">Tamaño de letra</label>
-        <select id="pr-size"><option value="14">Normal (14 pt)</option><option value="16">Grande (16 pt)</option><option value="12">Pequeña (12 pt)</option></select>
+        <select id="pr-size"><option value="16">Grande (16 pt)</option><option value="14" selected>Normal (14 pt)</option><option value="13">Mediana (13 pt)</option><option value="12">Pequeña (12 pt)</option><option value="11">Muy pequeña (11 pt)</option></select>
       </div>
       <div>
         <label class="field-label" for="pr-glosa">Glosario</label>
         <select id="pr-glosa"><option value="pie">Al pie de cada página</option><option value="margen">En el margen</option><option value="final">Todo al final</option></select>
       </div>
+      <div>
+        <label class="field-label" for="pr-sobrantes">Páginas que sobran (cuadernillo)</label>
+        <select id="pr-sobrantes"><option value="notas">Para escribir (con renglones)</option><option value="blanco">En blanco</option></select>
+      </div>
+    </div>
+    <label class="auto-row"><input type="checkbox" id="pr-auto" checked> <span><b>Ajuste automático del diseño</b><br><span class="hint">Prueba tamaños de letra entre 11 y 18 pt, cerca del que elegiste, para que no queden títulos sueltos, líneas solas ni páginas casi vacías o en blanco.</span></span></label>
+    <div class="two" style="display:none">
     </div>
     <button class="btn primary" id="btn-pdf" type="button">Descargar PDF A5</button>
     <p class="hint" id="pr-status" style="margin:0" role="status" aria-live="polite"></p>
@@ -1549,7 +1558,7 @@ function layoutA5(d, cfg, S) {
         let supT = null, supW = 0;
         if (s.sup && i === last) { supT = supNum(s.sup); meas.font = `700 ${size * 0.62}px ${FREAD}`; supW = meas.measureText(supT).width + size * 0.05; }
         if (!sp && x + w + supW > maxW && line.length) push();
-        line.push({ t: sp ? " " : t, sp, w: w + supW, tw: w, b: s.b, m: s.m, i: s.i, c: s.c, supT, x });
+        line.push({ t: sp ? " " : t, sp, w: w + supW, tw: w, b: s.b, m: s.m, i: s.i, c: s.c, supT, supN: supT ? s.sup : 0, x });
         x += w + supW;
       });
     }
@@ -1558,10 +1567,8 @@ function layoutA5(d, cfg, S) {
   }
   function textBlock(segs, maxW, pt, fam, color, lhMul = 1.5) {
     const size = px(pt), lh = size * lhMul, lines = wrap(segs, maxW, size, fam);
-    return {
-      h: lines.length * lh,
-      draw(ctx, x0, y0) {
-        lines.forEach((ln, k) => {
+    const drawRange = (ctx, x0, y0, from = 0, to = lines.length) => {
+        lines.slice(from, to).forEach((ln, k) => {
           const top = y0 + k * lh, base = top + lh / 2 + size * 0.35;
           ln.forEach(it => {
             if (it.m && !it.sp) { ctx.fillStyle = C.hl; ctx.fillRect(x0 + it.x - size * 0.05, top + lh / 2 - size * 0.02, it.tw + size * 0.1, size * 0.5); }
@@ -1572,8 +1579,8 @@ function layoutA5(d, cfg, S) {
             if (it.supT) { ctx.font = `700 ${size * 0.62}px ${FREAD}`; ctx.fillStyle = C.acc; ctx.fillText(it.supT, x0 + it.x + it.tw + size * 0.05, base - size * 0.42); }
           });
         });
-      }
     };
+    return { h: lines.length * lh, lh, lines, draw: (ctx, x0, y0) => drawRange(ctx, x0, y0), drawRange };
   }
   function rr(ctx, x, y, w, h, r, fill) {
     ctx.fillStyle = fill; ctx.beginPath();
@@ -1591,8 +1598,21 @@ function layoutA5(d, cfg, S) {
     const notes = opt.notes || [];
     const P = cfg.pictos && opt.picto !== false ? m(poem ? 8 : 11) : 0, gap = P ? m(poem ? 3 : 4) : 0;
     const t = textBlock(segs, (opt.w || colW) - P - gap, pt, FREAD, C.ink, poem ? 1.4 : 1.5);
-    const h = Math.max(t.h, P);
-    return { h, notes, gap: opt.gap ?? m(poem ? 1.2 : 3), draw(ctx, x, y) { if (P) picto(ctx, pic, x, y, P); t.draw(ctx, x + P + gap, y + Math.max(0, (P - t.h) / 2)); } };
+    const L = t.lines.length;
+    const supsIn = (from, to) => new Set(t.lines.slice(from, to).flat().filter(it => it.supN).map(it => it.supN));
+    const mk = (from, to, first) => {
+      const th = (to - from) * t.lh, full = from === 0 && to === L;
+      const h = first ? Math.max(th, P) : th;
+      const ss = supsIn(from, to);
+      return {
+        h, lines: to - from, gap: opt.gap ?? m(poem ? 1.2 : 3),
+        notes: full ? notes : notes.filter(gi => ss.has(noteNum.get(gi))),
+        minH: (to - from) >= 4 ? Math.max(first ? P : 0, 2 * t.lh) : h,
+        split: (!poem && to - from >= 4) ? (k) => [mk(from, from + k, first), mk(from + k, to, false)] : null,
+        draw(ctx, x, y) { if (first && P) picto(ctx, pic, x, y, P); t.drawRange(ctx, x + P + gap, y + (full ? Math.max(0, (P - th) / 2) : 0), from, to); }
+      };
+    };
+    return mk(0, L, true);
   }
   function headBlock(t, pt = bodyPt + 2) {
     const tb = textBlock([{ t, b: 1 }], colW, pt, FUI, C.acc, 1.3);
@@ -1678,60 +1698,96 @@ function layoutA5(d, cfg, S) {
   }
   if (d.preguntas?.length) { blocks.push(headBlock("¿Lo entendiste?")); d.preguntas.forEach((q, k) => blocks.push(questionBlock(q, k))); }
 
-  /* Paginación */
-  const pages = [];
+  /* Paginación (plan sin dibujar, para poder probar varias opciones) */
   const top = m(A5.mT), bottom = m(A5.H - A5.mB), x0 = m(A5.mL);
-  let pg = null;
-  const newPage = () => {
-    const cv = document.createElement("canvas"); cv.width = Math.round(m(A5.W)); cv.height = Math.round(m(A5.H));
-    const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
-    pg = { cv, ctx, y: top, notes: [], noteY: top, empty: true }; pages.push(pg);
-  };
   const footH = (list) => list.length ? m(5) + list.reduce((a, gi) => a + noteBlock(gi, colW, false).h + m(1.6), 0) : 0;
+  const marginH = (list) => list.reduce((a, gi) => a + noteBlock(gi, noteW, true).h + m(2), 0);
+  const plan = []; let pg = null;
+  const newPage = () => { pg = { items: [], notes: [], mnotes: [], y: top, noteY: top, empty: true }; plan.push(pg); };
+  const fits = (y, h, notes) => {
+    if (mode === "pie") return y + h <= bottom - footH(pg.notes.concat(notes));
+    if (margin) return y + h <= bottom && Math.max(y, pg.noteY) + marginH(notes) <= bottom;
+    return y + h <= bottom;
+  };
+  const minH = (b) => b.minH ?? b.h;
   newPage();
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
+  const queue = blocks.slice();
+  let guard = 0;
+  for (let i = 0; i < queue.length && guard++ < 5000; i++) {
+    let b = queue[i];
     const yStart = pg.empty ? pg.y : pg.y + (b.before || 0);
     let need = b.h;
-    for (let k = i; blocks[k].keep && blocks[k + 1]; k++) need += (blocks[k].gap ?? m(3)) + blocks[k + 1].h;
-    let fits;
-    if (mode === "pie") fits = yStart + need <= bottom - footH(pg.notes.concat(b.notes));
-    else if (margin) {
-      const ny = Math.max(yStart, pg.noteY), nh = b.notes.reduce((a, gi) => a + noteBlock(gi, noteW, true).h + m(2), 0);
-      fits = yStart + need <= bottom && ny + nh <= bottom;
-    } else fits = yStart + need <= bottom;
-    if (!fits && !pg.empty) { newPage(); i--; continue; }
-    const y = pg.empty ? pg.y : yStart;
-    b.draw(pg.ctx, x0, y);
-    if (margin && b.notes.length) {
-      let ny = Math.max(y, pg.noteY);
-      b.notes.forEach(gi => { const nb = noteBlock(gi, noteW, true); nb.draw(pg.ctx, noteX, ny); ny += nb.h + m(2); });
-      pg.noteY = ny;
+    if (b.keep) { let k = i; while (queue[k].keep && queue[k + 1]) { const nx = queue[k + 1]; need += (queue[k].gap ?? m(3)) + (nx.keep ? nx.h : minH(nx)); k++; } }
+    if (!fits(yStart, need, b.notes)) {
+      let placed = false;
+      if (b.split && !b.keep) {
+        for (let k = b.lines - 2; k >= 2; k--) {
+          const [a, c] = b.split(k);
+          if (fits(yStart, a.h, a.notes)) { queue.splice(i, 1, a, c); b = a; placed = true; break; }
+        }
+      }
+      if (!placed && !pg.empty) { newPage(); i--; continue; }
     }
+    const y = pg.empty ? pg.y : yStart;
+    pg.items.push({ b, y });
+    if (margin && b.notes.length) { let ny = Math.max(y, pg.noteY); b.notes.forEach(gi => { pg.mnotes.push({ gi, y: ny }); ny += noteBlock(gi, noteW, true).h + m(2); }); pg.noteY = ny; }
     pg.notes.push(...b.notes);
     pg.y = y + b.h + (b.gap ?? m(3));
     pg.empty = false;
   }
-  /* Notas al pie, bordes y números de página */
-  pages.forEach((p, k) => {
-    const ctx = p.ctx;
-    if (mode === "pie" && p.notes.length) {
-      let y = bottom - footH(p.notes) + m(3);
-      ctx.strokeStyle = C.line; ctx.lineWidth = m(0.3); ctx.beginPath(); ctx.moveTo(x0, y - m(1.5)); ctx.lineTo(x0 + m(40), y - m(1.5)); ctx.stroke();
-      y += m(0.5);
-      p.notes.forEach(gi => { const nb = noteBlock(gi, colW, false); nb.draw(ctx, x0, y); y += nb.h + m(1.6); });
+  const lastFill = Math.min(1, (plan[plan.length - 1].y - top) / (bottom - top));
+
+  function draw(extra = 0, extraKind = "notas") {
+    const total = plan.length + extra;
+    const canv = plan.map(() => null);
+    const mk = () => { const cv = document.createElement("canvas"); cv.width = Math.round(m(A5.W)); cv.height = Math.round(m(A5.H)); const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); return { cv, ctx }; };
+    const footer = (ctx, k) => { ctx.font = `400 ${px(8.5)}px ${FUI}`; ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillText(`${d.titulo || ""}  ·  ${k + 1} / ${total}`, m(A5.W / 2), m(A5.H - 8)); ctx.textAlign = "left"; };
+    const out = plan.map((p, k) => {
+      const { cv, ctx } = mk();
+      p.items.forEach(({ b, y }) => b.draw(ctx, x0, y));
+      p.mnotes.forEach(({ gi, y }) => noteBlock(gi, noteW, true).draw(ctx, noteX, y));
+      if (mode === "pie" && p.notes.length) {
+        let y = bottom - footH(p.notes) + m(3);
+        ctx.strokeStyle = C.line; ctx.lineWidth = m(0.3); ctx.beginPath(); ctx.moveTo(x0, y - m(1.5)); ctx.lineTo(x0 + m(40), y - m(1.5)); ctx.stroke();
+        y += m(0.5);
+        p.notes.forEach(gi => { const nb = noteBlock(gi, colW, false); nb.draw(ctx, x0, y); y += nb.h + m(1.6); });
+      }
+      if (margin) { ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25); ctx.beginPath(); ctx.moveTo(noteX - m(2.5), top); ctx.lineTo(noteX - m(2.5), bottom); ctx.stroke(); }
+      footer(ctx, k);
+      return cv;
+    });
+    for (let e = 0; e < extra; e++) {
+      const { cv, ctx } = mk();
+      if (extraKind === "notas") {
+        const t = textBlock([{ t: "Mis notas", b: 1 }], colW, 15, FUI, C.acc, 1.3); t.draw(ctx, x0, top);
+        ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25);
+        for (let y = top + t.h + m(10); y <= bottom; y += m(9)) { ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(m(A5.W - A5.mR), y); ctx.stroke(); }
+        footer(ctx, plan.length + e);
+      }
+      out.push(cv);
     }
-    if (margin) { ctx.strokeStyle = C.line; ctx.lineWidth = m(0.25); ctx.beginPath(); ctx.moveTo(noteX - m(2.5), top); ctx.lineTo(noteX - m(2.5), bottom); ctx.stroke(); }
-    ctx.font = `400 ${px(8.5)}px ${FUI}`; ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.fillText(`${d.titulo || ""}  ·  ${k + 1} / ${pages.length}`, m(A5.W / 2), m(A5.H - 8));
-    ctx.textAlign = "left";
-  });
-  if (cfg.bw) pages.forEach(p => {
-    const im = p.ctx.getImageData(0, 0, p.cv.width, p.cv.height), a = im.data;
-    for (let k = 0; k < a.length; k += 4) { const g = a[k] * 0.299 + a[k + 1] * 0.587 + a[k + 2] * 0.114; a[k] = a[k + 1] = a[k + 2] = g; }
-    p.ctx.putImageData(im, 0, 0);
-  });
-  return pages.map(p => p.cv);
+    if (cfg.bw) out.forEach(cv => {
+      const ctx = cv.getContext("2d"), im = ctx.getImageData(0, 0, cv.width, cv.height), a = im.data;
+      for (let k = 0; k < a.length; k += 4) { const g = a[k] * 0.299 + a[k + 1] * 0.587 + a[k + 2] * 0.114; a[k] = a[k + 1] = a[k + 2] = g; }
+      ctx.putImageData(im, 0, 0);
+    });
+    return out;
+  }
+  return { count: plan.length, lastFill, size: bodyPt, draw };
+}
+
+/* Ajuste automático: prueba tamaños de letra y elige el diseño más prolijo */
+function bestA5(d, cfg, S) {
+  if (!cfg.auto) return layoutA5(d, cfg, S);
+  const base = cfg.size, booklet = cfg.formato === "cuadernillo";
+  let best = null;
+  for (let s = Math.min(18, base + 2); s >= 11 - 1e-9; s -= 0.5) {
+    const L = layoutA5(d, Object.assign({}, cfg, { size: s }), S);
+    const blanks = booklet ? (4 - L.count % 4) % 4 : 0;
+    const cost = blanks * (cfg.sobrantes === "notas" ? 18 : 40) + (L.count > 1 && L.lastFill < 0.3 ? 25 : 0) + (s < base ? (base - s) * 8 : (s - base) * 3) + L.count * 0.5;
+    if (!best || cost < best.cost - 1e-9) best = { L, cost };
+  }
+  return best.L;
 }
 
 /* Cuadernillo: A4 apaisado, dos A5 por cara, en orden para doblar y engrapar */
@@ -1754,13 +1810,18 @@ function spreadCanvas(pages, sp, S, preview) {
   return cv;
 }
 
-function prCfg() { return { size: +$("pr-size").value, glosa: $("pr-glosa").value, pictos: currentShowPictos, bw: $("pr-color").value === "bw", font: $("pr-font").value, formato: $("pr-formato").value }; }
+function prCfg() { return { size: +$("pr-size").value, glosa: $("pr-glosa").value, pictos: currentShowPictos, bw: $("pr-color").value === "bw", font: $("pr-font").value, formato: $("pr-formato").value, auto: $("pr-auto").checked, sobrantes: $("pr-sobrantes").value }; }
 let prTimer = null;
 async function prPreview() {
   $("pr-status").textContent = "Preparando las páginas…";
   await fontsReady();
   const cfg = prCfg();
-  const pages = layoutA5(current, cfg, 3.6);
+  const L = bestA5(current, cfg, 3.6);
+  const booklet = cfg.formato === "cuadernillo";
+  const extra = booklet && cfg.sobrantes === "notas" ? (4 - L.count % 4) % 4 : 0;
+  const pages = L.draw(extra, "notas");
+  const sizeNote = cfg.auto ? ` Letra de ${String(L.size).replace(".", ",")} pt${L.size !== cfg.size ? " (ajustada automáticamente)" : ""}.` : "";
+  const extraNote = extra ? ` ${extra === 1 ? "La página que sobraba quedó" : `Las ${extra} páginas que sobraban quedaron`} para notas.` : "";
   const box = $("pr-pages"); box.innerHTML = ""; box.classList.toggle("spreads", cfg.formato === "cuadernillo");
   if (cfg.formato === "cuadernillo") {
     const { N, out } = imposeOrder(pages.length);
@@ -1770,10 +1831,10 @@ async function prPreview() {
       const cap = document.createElement("figcaption"); cap.textContent = `Hoja ${sp.hoja} · ${sp.cara}`;
       fig.append(cv, cap); box.appendChild(fig);
     });
-    $("pr-status").textContent = `${pages.length} páginas A5 en ${N / 4} ${N / 4 === 1 ? "hoja A4" : "hojas A4"} a doble cara${N > pages.length ? ` (${N - pages.length} en blanco al final)` : ""}.`;
+    $("pr-status").textContent = `${pages.length} páginas A5 en ${N / 4} ${N / 4 === 1 ? "hoja A4" : "hojas A4"} a doble cara${N > pages.length ? ` (${N - pages.length} en blanco al final)` : ""}.${sizeNote}${extraNote}`;
   } else {
     pages.forEach((cv, k) => { cv.setAttribute("aria-label", `Página ${k + 1}`); cv.setAttribute("role", "img"); box.appendChild(cv); });
-    $("pr-status").textContent = `${pages.length} ${pages.length === 1 ? "página" : "páginas"} A5.`;
+    $("pr-status").textContent = `${pages.length} ${pages.length === 1 ? "página" : "páginas"} A5.${sizeNote}`;
   }
 }
 async function prPdf() {
@@ -1785,7 +1846,9 @@ async function prPdf() {
   try {
     await fontsReady();
     const cfg = prCfg();
-    const pages = layoutA5(current, cfg, 11.8);
+    const L = bestA5(current, cfg, 11.8);
+    const extra = cfg.formato === "cuadernillo" && cfg.sobrantes === "notas" ? (4 - L.count % 4) % 4 : 0;
+    const pages = L.draw(extra, "notas");
     let pdf;
     if (cfg.formato === "cuadernillo") {
       pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
@@ -1804,7 +1867,9 @@ async function prPdf() {
 }
 $("btn-print").onclick = () => { openSheet("sheet-print"); prPreview(); };
 $("btn-pdf").textContent = "Descargar PDF";
-const PR_IDS = ["pr-size", "pr-glosa", "pr-color", "pr-font", "pr-formato"];
+const PR_IDS = ["pr-size", "pr-glosa", "pr-color", "pr-font", "pr-formato", "pr-sobrantes"];
+$("pr-auto").addEventListener("change", () => { lsSet("lf-pr-auto", $("pr-auto").checked ? "1" : "0"); prPreview(); });
+if (lsGet("lf-pr-auto") === "0") $("pr-auto").checked = false;
 PR_IDS.forEach(id => $(id).addEventListener("change", () => { lsSet("lf-" + id, $(id).value); prHint(); prPreview(); }));
 function prHint() { $("pr-hint").innerHTML = $("pr-formato").value === "cuadernillo"
   ? "Imprime en A4 <b>a doble cara</b>, eligiendo <b>«voltear por el borde corto»</b>. Después dobla las hojas juntas por la mitad y engrapa en el doblez."
