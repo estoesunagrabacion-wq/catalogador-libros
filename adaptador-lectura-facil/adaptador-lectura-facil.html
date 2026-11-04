@@ -343,14 +343,28 @@ body.student .reading { max-width: 36em; margin: 0 auto; }
         <div>
           <label class="field-label" for="materia">Materia</label>
           <select id="materia">
-            <option>Comunicación / Literatura</option>
-            <option>Matemática</option>
-            <option>Ciencia y Tecnología</option>
-            <option>Ciencias Sociales / Historia / Geografía</option>
-            <option>Desarrollo Personal, Ciudadanía y Cívica</option>
-            <option>Arte y Cultura</option>
-            <option>Educación para el Trabajo</option>
-            <option>Educación Física</option>
+            <optgroup label="Secundaria">
+              <option>Lengua y Literatura</option>
+              <option>Matemática</option>
+              <option>Historia</option>
+              <option>Geografía</option>
+              <option>Biología</option>
+              <option>Física</option>
+              <option>Química</option>
+              <option>Fisicoquímica</option>
+              <option>Formación Ética y Ciudadana</option>
+              <option>Educación Tecnológica</option>
+              <option>Filosofía</option>
+              <option>Economía</option>
+              <option>Artes</option>
+              <option>Educación Física</option>
+              <option>Educación Sexual Integral (ESI)</option>
+            </optgroup>
+            <optgroup label="Primaria">
+              <option>Prácticas del Lenguaje</option>
+              <option>Ciencias Naturales</option>
+              <option>Ciencias Sociales</option>
+            </optgroup>
             <option>Otra</option>
           </select>
         </div>
@@ -874,12 +888,13 @@ const NIVELES = {
 };
 
 const GRADOS = [
-  ["1pri", "1.º de primaria", "6-7"], ["2pri", "2.º de primaria", "7-8"], ["3pri", "3.º de primaria", "8-9"],
-  ["4pri", "4.º de primaria", "9-10"], ["5pri", "5.º de primaria", "10-11"], ["6pri", "6.º de primaria", "11-12"],
-  ["1sec", "1.º de secundaria", "12-13"], ["2sec", "2.º de secundaria", "13-14"], ["3sec", "3.º de secundaria", "14-15"],
-  ["4sec", "4.º de secundaria", "15-16"], ["5sec", "5.º de secundaria", "16-17"]
+  ["1pri", "1.º grado (primaria)", "6-7"], ["2pri", "2.º grado (primaria)", "7-8"], ["3pri", "3.º grado (primaria)", "8-9"],
+  ["4pri", "4.º grado (primaria)", "9-10"], ["5pri", "5.º grado (primaria)", "10-11"], ["6pri", "6.º grado (primaria)", "11-12"],
+  ["7pri", "7.º grado (primaria)", "12-13"],
+  ["1sec", "1.º año (secundaria)", "13-14"], ["2sec", "2.º año (secundaria)", "14-15"], ["3sec", "3.º año (secundaria)", "15-16"],
+  ["4sec", "4.º año (secundaria)", "16-17"], ["5sec", "5.º año (secundaria)", "17-18"], ["6sec", "6.º año (secundaria técnica o artística)", "18-19"]
 ];
-const grado = (k) => GRADOS.find(g => g[0] === k) || GRADOS[10];
+const grado = (k) => GRADOS.find(g => g[0] === k) || GRADOS.find(g => g[0] === "5sec");
 
 const TIPO_HINTS = {
   narrativo: "Escribe el mismo cuento con palabras más fáciles, para leerlo junto con sus compañeros.",
@@ -939,11 +954,17 @@ const TAREAS = {
 - En "pistas" de cada sección puedes poner 1 a 3 ayudas cortas (por ejemplo, cómo empezar la respuesta), sin dar la respuesta.`
 };
 
+const M_LIT = "En Lengua y Literatura, los términos de la materia (narrador, verso, metáfora, género…) van al glosario con un ejemplo cotidiano.";
+const M_CIE = "En ciencias, conserva los conceptos científicos correctos; explícalos con ejemplos cotidianos y respeta el orden de los procesos.";
+const M_HIS = "En Historia y Ciencias Sociales, ordena los hechos en el tiempo, escribe los años con cifras y explica los siglos si aparecen.";
 const MATERIAS = {
+  "Lengua y Literatura": M_LIT, "Prácticas del Lenguaje": M_LIT,
   "Matemática": "En Matemática, conserva siempre los números, signos, unidades y fórmulas tal como están. Escribe los números con cifras.",
-  "Ciencia y Tecnología": "En Ciencia, conserva los conceptos científicos correctos; explícalos con ejemplos cotidianos y respeta el orden de los procesos.",
-  "Ciencias Sociales / Historia / Geografía": "En Historia, ordena los hechos en el tiempo, escribe los años con cifras y explica los siglos si aparecen.",
-  "Comunicación / Literatura": "En Literatura, los términos de la materia (narrador, verso, metáfora, género…) van al glosario con un ejemplo cotidiano."
+  "Biología": M_CIE, "Física": M_CIE + " Conserva las unidades y fórmulas tal como están.", "Química": M_CIE + " Conserva fórmulas y símbolos químicos tal como están.", "Fisicoquímica": M_CIE + " Conserva unidades, fórmulas y símbolos tal como están.", "Ciencias Naturales": M_CIE,
+  "Historia": M_HIS, "Ciencias Sociales": M_HIS,
+  "Geografía": "En Geografía, conserva los nombres de lugares y los datos; explica los conceptos con ejemplos cercanos a la Ciudad de Buenos Aires o a la Argentina.",
+  "Formación Ética y Ciudadana": "En Formación Ética y Ciudadana, explica derechos, normas e instituciones con ejemplos de la vida cotidiana y de la escuela.",
+  "Educación Sexual Integral (ESI)": "En ESI, usa un lenguaje respetuoso, claro y no estigmatizante, con perspectiva de derechos."
 };
 
 function buildPrompt(texto, o) {
@@ -952,12 +973,13 @@ function buildPrompt(texto, o) {
   const pistas = o.tipo === "problemas" || o.tipo === "consignas";
   return `Eres especialista en adaptación de textos a Lectura Fácil para educación inclusiva.
 
-ESTUDIANTE: cursa ${g[1]} (${g[2]} años). ${o.curso === o.lee ? "Lee al nivel de su curso, pero necesita textos más claros y ordenados." : `Su nivel de comprensión lectora es aproximadamente de ${l[1]} (${l[2]} años).`}
+ESTUDIANTE: cursa ${g[1]} en una escuela de la Ciudad de Buenos Aires (${g[2]} años). ${o.curso === o.lee ? "Lee al nivel de su curso, pero necesita textos más claros y ordenados." : `Su nivel de comprensión lectora es aproximadamente de ${l[1]} (${l[2]} años).`}
 ${o.notas ? "NOTAS DE LA DOCENTE SOBRE EL ESTUDIANTE: " + o.notas + "\n" : ""}MATERIA: ${o.materia}.
 ${MATERIAS[o.materia] ? MATERIAS[o.materia] + "\n" : ""}
 ${TAREAS[o.tipo]}
 
 REGLAS DE LECTURA FÁCIL:
+- Escribe en español de la Argentina (Buenos Aires): vocabulario rioplatense y, cuando te dirijas al lector (consignas, pistas, preguntas, ejemplos), voseo ("leé", "escribí", "subrayá", "vos"). En textos narrativos o poemas, respeta la voz del original.
 - ${NIVELES[o.nivel]}
 - Usa vocabulario que entienda alguien que lee como en ${l[1]}, pero mantén los contenidos de ${g[1]}: el texto es más fácil, no de otro curso.
 - El tono corresponde a su edad (${g[2]} años): claro y directo${parseInt(g[2]) >= 11 ? ", nunca infantil. Nada de diminutivos ni exclamaciones del tipo \"¡Qué divertido!\"" : ", cercano y amable"}.
