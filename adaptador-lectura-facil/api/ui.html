@@ -1,0 +1,50 @@
+<div class="sheet" id="sheet-ai" hidden>
+  <div class="sheet-in wide" role="dialog" aria-modal="true" aria-labelledby="h-ai">
+    <h2 id="h-ai">Configurar la IA <button class="btn small" type="button" data-close>Cerrar</button></h2>
+    <p style="margin:0">Esta versión funciona con <b>tu propia clave de API</b>. La clave se guarda solo en este navegador y se envía únicamente a la empresa que elijas. El uso se cobra en tu cuenta de esa empresa.</p>
+    <div class="two">
+      <div>
+        <label class="field-label" for="ai-prov">Empresa</label>
+        <select id="ai-prov">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (ChatGPT)</option>
+          <option value="gemini">Google (Gemini) · tiene plan gratuito</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="ai-model">Modelo</label>
+        <select id="ai-model"></select>
+      </div>
+    </div>
+    <p class="hint" id="ai-nota" style="margin:-4px 0 0"></p>
+    <div>
+      <label class="field-label" for="ai-key">Clave de API</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="ai-key" autocomplete="off" spellcheck="false" style="flex:1 1 240px;width:auto;font-family:ui-monospace,monospace" placeholder="Pega aquí tu clave">
+        <button class="btn small" type="button" id="ai-show">Mostrar</button>
+      </div>
+      <p class="hint" style="margin:6px 0 0">¿No tienes una? <a id="ai-link" href="#" target="_blank" rel="noopener">Sácala aquí</a> (se abre en otra pestaña).</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" type="button" id="ai-save" style="width:auto">Guardar y probar</button>
+      <button class="btn small" type="button" id="ai-load">Cargar modelos de mi cuenta</button>
+      <button class="btn small" type="button" id="ai-forget">Borrar la clave de este navegador</button>
+    </div>
+    <p class="status" id="ai-status" role="status" aria-live="polite" style="margin:0"></p>
+    <details class="hbox"><summary>Cómo sacar una clave, paso a paso</summary>
+      <dl class="faq">
+        <dt>Anthropic (Claude)</dt><dd>Entra en console.anthropic.com con tu correo → <i>Settings → Billing</i>: carga saldo (desde unos pocos dólares) → <i>API keys → Create key</i> → copia la clave (empieza con <code>sk-ant-</code>).</dd>
+        <dt>OpenAI (ChatGPT)</dt><dd>Entra en platform.openai.com → <i>Settings → Billing</i>: carga saldo → <i>API keys → Create new secret key</i> → copia la clave (empieza con <code>sk-</code>). La suscripción a ChatGPT Plus no sirve para la API.</dd>
+        <dt>Google (Gemini)</dt><dd>Entra en aistudio.google.com con una cuenta de Google → <i>Get API key → Create API key</i> → copia la clave. Puedes empezar sin pagar, con el plan gratuito.</dd>
+      </dl>
+    </details>
+    <details class="hbox"><summary>Seguridad y costos</summary>
+      <ul class="steps">
+        <li>La clave es como una contraseña: no la compartas ni la uses en computadoras públicas. Quien use este navegador puede usarla.</li>
+        <li>Para cuidar el gasto, en la página de tu cuenta puedes fijar un <b>límite mensual</b>.</li>
+        <li>Adaptar un cuento de unas 2.000 palabras cuesta, aproximadamente, entre menos de un centavo y unos 50 centavos de dólar según el modelo.</li>
+        <li>«Copiar mis datos» no copia la clave: en otro dispositivo hay que volver a cargarla.</li>
+      </ul>
+    </details>
+  </div>
+</div>
