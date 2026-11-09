@@ -21,3 +21,32 @@ Abrir este archivo `.html` directamente (desde el repositorio o descargado) mues
 ## Cómo actualizar el respaldo
 
 Cuando la aplicación cambie, reemplazar `adaptador-lectura-facil.html` por la versión nueva y hacer commit.
+
+## Versión con clave de API (sin cuenta de Claude)
+
+Hay una segunda versión que funciona con la **clave de API propia** de cada docente, de
+**Anthropic (Claude)**, **OpenAI (ChatGPT)** o **Google (Gemini)**. Se publica con GitHub Pages:
+
+https://estoesunagrabacion-wq.github.io/catalogador-libros/lectura-facil/
+
+- La clave se guarda solo en el navegador de cada docente y se envía únicamente a la empresa elegida.
+- El uso se cobra en la cuenta de esa empresa (Gemini tiene plan gratuito con límites).
+- Tiene las mismas funciones que la versión de Claude.
+
+### Cómo se genera
+
+La versión con clave **no se edita a mano**: se genera a partir de la aplicación principal.
+
+```
+python3 adaptador-lectura-facil/api/build.py
+```
+
+- `api/shim.js`: conecta la aplicación con las APIs (reemplaza la conexión del visor de Claude).
+- `api/ui.html` y `api/ui.js`: panel «Configurar la IA» (empresa, modelo y clave).
+- `api/build.py`: cambia los textos que hablan de la cuenta de Claude y escribe `docs/lectura-facil/index.html`.
+
+Después de cambiar la aplicación principal, volver a correr el script y hacer commit de `docs/`.
+
+### Activar GitHub Pages (una sola vez)
+
+En GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` / carpeta `/docs`** → Save.
