@@ -329,7 +329,7 @@
     </div>
   </div>
 
-  <p class="small muted" style="text-align:center">Funciona en el navegador. No hay servidor: tus fotos y tu clave no salen de tu dispositivo (salvo la foto que se manda al servicio de IA para leerla). <span class="pill">v32</span></p>
+  <p class="small muted" style="text-align:center">Funciona en el navegador. No hay servidor: tus fotos y tu clave no salen de tu dispositivo (salvo la foto que se manda al servicio de IA para leerla). <span class="pill">v33</span></p>
 
   <!-- Overlay del escáner de código de barras -->
   <div id="scanOverlay" class="hidden" style="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center">
@@ -344,7 +344,7 @@
 
 /* ============================================================
    Columnas EXACTAS de la planilla "Publicar varios productos"
-   (Libros Físicos), en orden A..BI. Cada una define cómo se llena.
+   (Libros Físicos), en orden A..BI (61 columnas; ML sacó «Índice» en nov. 2026). Cada una define cómo se llena.
    g(id) = valor del campo en pantalla ; C = config.
    ============================================================ */
 const COLUMNAS = [
@@ -381,7 +381,6 @@ const COLUMNAS = [
   ["Edición del libro", g=>g("edicion")],
   ["Tapa del libro", g=>g("tapa")],
   ["Volumen del libro", ()=>""],
-  ["Índice", g=>g("indice")],
   ["Año de publicación", g=>g("anio")],
   ["Género del libro", ()=>""],
   ["Páginas para colorear", ()=>""],
@@ -433,7 +432,6 @@ const CAMPOS = [
   {id:"edicion", label:"Edición"},
   {id:"idioma", label:"Idioma"},
   {id:"tapa", label:"Tapa", type:"select", opts:["","Dura","Blanda"]},
-  {id:"indice", label:"Índice", type:"select", opts:["","Sí","No"]},
   {id:"anio", label:"Año de publicación"},
   {id:"isbn", label:"ISBN"},
   {id:"tipo_narracion", label:"Tipo de narración"},
@@ -601,14 +599,13 @@ function construirCampos(){
 }
 
 /* ---------- Prompt ---------- */
-const CLAVES = "titulo_libro, subtitulo, autor, coautores, traductores, editorial, coleccion, serie, edicion, idioma, tapa, indice, anio, isbn, tipo_narracion, paginas, tema_genero, pais_origen, altura_cm, ancho_cm, peso_g, material_tapa, condicion, estado, descripcion, precio_sugerido_min, precio_sugerido_max, confianza, observaciones";
+const CLAVES = "titulo_libro, subtitulo, autor, coautores, traductores, editorial, coleccion, serie, edicion, idioma, tapa, anio, isbn, tipo_narracion, paginas, tema_genero, pais_origen, altura_cm, ancho_cm, peso_g, material_tapa, condicion, estado, descripcion, precio_sugerido_min, precio_sugerido_max, confianza, observaciones";
 const ESQUEMA =
-`{"titulo_libro":"","subtitulo":"","autor":"","coautores":"","traductores":"","editorial":"","coleccion":"","serie":"","edicion":"","idioma":"","tapa":"","indice":"","anio":"","isbn":"","tipo_narracion":"","paginas":"","tema_genero":"","ciudad":"","pais_origen":"","altura_cm":"","ancho_cm":"","grosor_cm":"","peso_g":"","material_tapa":"","condicion":"","estado":"","descripcion":"","precio_sugerido_min":null,"precio_sugerido_max":null,"confianza":"alta|media|baja","observaciones":""}`;
+`{"titulo_libro":"","subtitulo":"","autor":"","coautores":"","traductores":"","editorial":"","coleccion":"","serie":"","edicion":"","idioma":"","tapa":"","anio":"","isbn":"","tipo_narracion":"","paginas":"","tema_genero":"","ciudad":"","pais_origen":"","altura_cm":"","ancho_cm":"","grosor_cm":"","peso_g":"","material_tapa":"","condicion":"","estado":"","descripcion":"","precio_sugerido_min":null,"precio_sugerido_max":null,"confianza":"alta|media|baja","observaciones":""}`;
 const REGLAS =
 `Reglas de formato de cada libro:
 - "idioma": nombre en español (Español, Inglés, Italiano, Ruso, Francés, Alemán, Portugués, Latín, Griego, etc.). El idioma puede NO ser español: leé el alfabeto real.
 - "tapa": exactamente "Dura" o "Blanda" (o "" si no se sabe).
-- "indice": "Sí" o "No" (o "").
 - "tipo_narracion": p. ej. Novela, Cuento, Poesía, Ensayo, Teatro, Antología (o "").
 - "condicion": "Usado" salvo que claramente sea nuevo.
 - "estado": frase corta del estado del ejemplar: "Buen estado", "Muy buen estado", "Excelente estado", "Usado con marcas de uso", etc.
@@ -1274,8 +1271,16 @@ function precioResuelto(d){
     if(a&&b) return Math.round((a+b)/2); return a||b||""; }
   return "";
 }
-function armarTitulo(t,a){ let x=[t,a,C.etiqueta].filter(v=>v&&v.trim()).join(" ").replace(/\s+/g," ").trim();
-  if(x.length>60) x=x.slice(0,60).trim(); return x; }
+// Título de la publicación (máx. 60). Nunca corta una palabra al medio:
+// si no entra todo, primero se saca la etiqueta (ej. "Microcentro"), después el autor,
+// y en último caso se recorta el título del libro por palabras enteras.
+function _cortarPalabras(x,max){ if(x.length<=max) return x;
+  const c=x.slice(0,max+1); const i=c.lastIndexOf(" ");
+  return (i>0?c.slice(0,i):x.slice(0,max)).replace(/[\s,.;:\-–—]+$/,""); }
+function armarTitulo(t,a){
+  const limpio=arr=>arr.filter(v=>v&&v.trim()).join(" ").replace(/\s+/g," ").trim();
+  for(const partes of [[t,a,C.etiqueta],[t,a],[t]]){ const x=limpio(partes); if(x.length<=60) return x; }
+  return _cortarPalabras(limpio([t]),60); }
 function setCampo(id,v){ const el=$("f_"+id); if(el){ el.value=(v==null?"":v); if(id==="isbn") el.dispatchEvent(new Event("input")); } }
 function getCampo(id){ const el=$("f_"+id); return el?String(el.value).trim():""; }
 
